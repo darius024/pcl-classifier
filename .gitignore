@@ -1,0 +1,32 @@
+# Python virtual environment
+nlp-env/
+venv/
+.env/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Downloaded helper modules (fetched at runtime)
+notebooks/dont_patronize_me.py
+
+# Data files (large, not to be committed)
+data/dontpatronizeme_pcl.tsv
+data/dontpatronizeme_categories.tsv
+
+# Figures (generated outputs)
+figures/
+
+# macOS
+.DS_Store
+
+# Model outputs and checkpoints
+outputs/
+*.pt
+*.bin
+*.safetensors
