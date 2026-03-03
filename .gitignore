@@ -1,16 +1,22 @@
-# Python virtual environment
+# Python virtual environments
 nlp-env/
 venv/
 .env/
 env/
+.venv*/
 
 # Python cache
 __pycache__/
 *.py[cod]
 *.pyo
+*.egg-info/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
 
 # Downloaded helper modules (fetched at runtime)
 notebooks/dont_patronize_me.py
@@ -18,6 +24,7 @@ notebooks/dont_patronize_me.py
 # Data files (large, not to be committed)
 data/dontpatronizeme_pcl.tsv
 data/dontpatronizeme_categories.tsv
+data/task4_test.tsv
 
 # Figures (generated outputs)
 figures/
@@ -27,6 +34,11 @@ figures/
 
 # Model outputs and checkpoints
 outputs/
+BestModel/
 *.pt
 *.bin
 *.safetensors
+
+# Submission outputs (regenerated from notebook)
+dev.txt
+test.txt
