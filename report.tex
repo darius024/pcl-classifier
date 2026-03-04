@@ -90,23 +90,23 @@ The paper ``Don't Patronize Me! An Annotated Dataset with Patronizing and Condes
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.62\textwidth]{images/class_distribution.png}
-\caption{Class distribution of the full DPM corpus (10,469 examples). The dataset contains 993 PCL examples (9.5\%) and 9,476 No-PCL examples (90.5\%).}
+\includegraphics[width=\textwidth]{images/class_distribution_train_vs_dev.png}
+\caption{Class distribution across train and dev splits. Both maintain the same $\sim$9.5:1 No-PCL:PCL ratio (train: 7,537 / 794 PCL; dev: 2,094 / 199 PCL).}
 \label{fig:class_dist}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.7\textwidth]{images/token_lengths.png}
-\caption{Token length distribution by class (PCL vs.\ No PCL) in the training set. PCL examples tend to be slightly longer, but both distributions share a similar median.}
+\includegraphics[width=\textwidth]{images/token_lengths_train_vs_dev.png}
+\caption{Word-count distributions by class for train (left) and dev (right). PCL examples are slightly longer in both splits, with 95th percentiles below 200 words.}
 \label{fig:token_len}
 \end{figure}
 
 \subsubsection*{Analysis}
 
-The DPM corpus contains 10,469 examples in total: 993 PCL (9.5\%) and 9,476 No-PCL (90.5\%), reflecting a roughly \textbf{9.5:1 class imbalance}. This ratio is uniformly preserved across the official train split (8,375 examples; 794 PCL, 9.5\%) and the dev split (2,094 examples; 199 PCL, 9.5\%). The imbalance is severe but not pathological; with $\sim$794 positive training examples there is still meaningful signal for a fine-tuned transformer.
+The DPM corpus reflects a roughly \textbf{9.5:1 class imbalance} that is uniformly preserved across both splits (train: 7,537 examples, 794 PCL; dev: 2,094 examples, 199 PCL). This consistency confirms the split is stratified and that no distribution shift exists at the class level.
 
-The token length distributions show that PCL examples have a slightly higher mean word count ($\sim$80--100 words) compared to No-PCL examples, though the medians are closer. More importantly, both distributions have a long tail: some examples exceed 300 words, though the 95th percentile is below 200 words.
+Token length distributions are also consistent across splits: PCL examples have a slightly higher mean word count ($\sim$80--100 words) compared to No-PCL examples, though the medians are similar. Both splits share a long tail, but the 95th percentile stays below 200 words in each case.
 
 \subsubsection*{Impact Statement}
 
@@ -124,15 +124,15 @@ The severe class imbalance directly motivates two modelling decisions:
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.75\textwidth]{images/log_odds_contrast.png}
-\caption{Log-odds ratio of word frequencies in PCL vs.\ No-PCL examples. Positive values indicate words more characteristic of PCL; negative values indicate words more characteristic of No-PCL.}
+\includegraphics[width=0.78\textwidth]{images/log_odds_contrast.png}
+\caption{Log-odds ratio of word frequencies in PCL vs.\ No-PCL examples (training set). Positive values indicate words more characteristic of PCL; negative values indicate words more characteristic of No-PCL.}
 \label{fig:log_odds}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.75\textwidth]{images/distinctive_bigrams.png}
-\caption{Most distinctive bigrams in PCL vs.\ No-PCL examples, measured by log-odds ratio.}
+\includegraphics[width=\textwidth]{images/distinctive_bigrams.png}
+\caption{Most distinctive bigrams in PCL vs.\ No-PCL examples (training set), measured by log-odds ratio.}
 \label{fig:bigrams}
 \end{figure}
 
