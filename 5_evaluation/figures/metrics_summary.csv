@@ -1,15 +1,16 @@
 Metric,Value
-Model,roberta-base (seed=123)
-Decision threshold,0.6
-Dev F1 (PCL),0.5316
-Precision (PCL),0.5357
-Recall (PCL),0.5276
-AUC-PR,0.5775
-True Positives,105
-False Positives,91
-False Negatives,94
-True Negatives,1804
-FPR,0.048
-FNR,0.4724
+Model,Ensemble: RoBERTa(drop0-bs4ga4/seed7) + DistilBERT(drop03-bs8ga2/seed7)
+Ensemble weights,w(RoBERTa)=0.50 / w(DistilBERT)=0.50
+Decision threshold,0.5
+Dev F1 (PCL),0.6032
+Precision (PCL),0.5603
+Recall (PCL),0.6533
+AUC-PR,0.5906
+True Positives,130
+False Positives,102
+False Negatives,69
+True Negatives,1793
+FPR,0.0538
+FNR,0.3467
 Baseline F1,0.48
-F1 improvement,0.0516
+F1 improvement,0.1232
