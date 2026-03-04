@@ -31,18 +31,19 @@ GitHub Repository: \url{https://github.com/darius024/pcl-classifier}}
 
 \newpage
 \tableofcontents
-\newpage
 
 % ============================================================
+\clearpage
 \section{Introduction}
 
 Patronising and Condescending Language (PCL) is a subtle and socially harmful form of communication that often targets vulnerable communities such as the homeless, disabled, or refugees. Unlike overt hate speech, PCL can be difficult to detect because it is typically embedded within ostensibly positive or neutral framing — for example, describing vulnerable people as helpless or in need of saving, rather than as agents capable of self-determination.
 
-This report describes work carried out for the SemEval 2022 Task 4, Subtask 1 shared task, which frames PCL detection as a \textbf{binary classification problem}: given a news paragraph, classify it as either containing PCL (class~1) or not (class~0). The evaluation metric is the F1 score of the positive (PCL) class, which is appropriate given the strong class imbalance in the dataset.
+This report describes work carried out for the SemEval 2022 Task 4, Subtask 1 shared task, which frames PCL detection as a \textbf{binary classification problem}: given a news paragraph, classify it as either containing PCL (class~1) or not (class~0). The evaluation metric is the F1 score of the positive (PCL) class, appropriate given the strong class imbalance in the dataset. The official RoBERTa-base baseline achieves F1 = 0.48 on the dev set; our submitted dual-backbone ensemble achieves \textbf{F1 = 0.6069}, an improvement of $+$0.1269.
 
-The report follows the six stages of the NLP research lifecycle as specified in the coursework. Section~\ref{sec:review} presents a critical review of the original PCL dataset paper. Section~\ref{sec:eda} describes two distinct exploratory data analysis techniques applied to the dataset. Section~\ref{sec:approach} proposes and justifies our modelling approach. Section~\ref{sec:global} covers global evaluation and submission confirmation. Section~\ref{sec:local} presents local evaluation including error analysis and a precision--recall study. Sections~\ref{sec:discussion} and~\ref{sec:conclusion} discuss findings and conclude.
+The report follows the stages of the NLP research lifecycle as specified in the coursework. Section~\ref{sec:review} presents a critical review of the original PCL dataset paper. Section~\ref{sec:eda} describes two distinct exploratory data analysis techniques. Section~\ref{sec:approach} proposes and justifies our modelling approach. Section~\ref{sec:local} presents local evaluation including error analysis and a precision--recall study. Sections~\ref{sec:discussion} and~\ref{sec:conclusion} discuss findings and conclude. The GitHub repository containing all code, notebooks, and submission files (\texttt{dev.txt}, \texttt{test.txt}) is linked on the front page.
 
 % ============================================================
+\clearpage
 \section{Exercise 1: Critical Paper Review}
 \label{sec:review}
 
@@ -79,6 +80,7 @@ The paper ``Don't Patronize Me! An Annotated Dataset with Patronizing and Condes
 \end{itemize}
 
 % ============================================================
+\clearpage
 \section{Exercise 2: Exploratory Data Analysis (EDA)}
 \label{sec:eda}
 
@@ -115,8 +117,7 @@ The severe class imbalance directly motivates two modelling decisions:
     \item \textbf{\texttt{max\_length=256}:} Setting the transformer input length to 256 tokens captures the 95th percentile of sequence lengths without truncating most examples, while remaining computationally feasible. Sequences above this threshold are truncated, which affects fewer than 5\% of examples.
 \end{enumerate}
 
-\newpage
-
+\clearpage
 \subsection{EDA Technique 2: Lexical Analysis --- Log-Odds Contrast and Distinctive N-grams}
 
 \subsubsection*{Visual/Tabular Evidence}
@@ -152,6 +153,7 @@ This analysis informs two key design decisions:
 \end{enumerate}
 
 % ============================================================
+\clearpage
 \section{Exercise 3: Proposed Approach}
 \label{sec:approach}
 
@@ -195,42 +197,27 @@ HTML entities in the raw text are unescaped (e.g., \texttt{\&amp;} $\to$ \texttt
 \end{itemize}
 
 % ============================================================
-\section{Exercise 4 \& 5.1: Repository and Global Evaluation}
-\label{sec:global}
-
-The GitHub repository at \url{https://github.com/darius024/pcl-classifier} (linked on the front page) contains all notebooks, source code, and submission files. The \texttt{BestModel/} folder holds the saved \texttt{roberta-base/} and \texttt{distilbert/} checkpoints used for final predictions. The official submission files \texttt{dev.txt} and \texttt{test.txt} are in the repository root.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{lcccc}
-\toprule
-File & Lines & Expected & Format OK & PCL predicted \\
-\midrule
-\texttt{dev.txt}  & 2,094 & 2,094 & Yes & 236 \\
-\texttt{test.txt} & 3,832 & 3,832 & Yes & 368 \\
-\bottomrule
-\end{tabular}
-\caption{Submission format summary.}
-\label{tab:submission_format}
-\end{table}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{lcc}
-\toprule
-Metric & Value & vs.\ Baseline \\
-\midrule
-Dev F1 (PCL class) & \textbf{0.6069} & $+$0.1269 \\
-Baseline dev F1    & 0.48            & --- \\
-\bottomrule
-\end{tabular}
-\caption{Global evaluation. Our submitted \texttt{dev.txt} achieves F1 = 0.6069, surpassing the RoBERTa-base official baseline of 0.48 by $+$0.1269. Test set labels are held out.}
-\label{tab:submission_f1}
-\end{table}
-
-% ============================================================
+\clearpage
 \section{Exercise 5.2: Local Evaluation}
 \label{sec:local}
+
+\textbf{Submission summary.} The \texttt{BestModel/} folder in the repository holds the saved checkpoints for both backbones. The submission files \texttt{dev.txt} (2,094 lines) and \texttt{test.txt} (3,832 lines) are in the repository root, each containing one prediction per line (0 = No PCL, 1 = PCL). The ensemble achieves \textbf{F1 = 0.6069} on the official dev set, surpassing the baseline of 0.48 by $+$0.1269. Table~\ref{tab:final_results} summarises the final system comparison.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+System & Val F1 & Dev F1 & Threshold \\
+\midrule
+Solo RoBERTa (drop0-bs4ga4, seed=7)       & 0.5795 & 0.5955 & 0.75 \\
+Solo DistilBERT (drop03-bs8ga2, seed=7)   & 0.5818 & 0.5463 & 0.50 \\
+\textbf{Ensemble (w=0.50/0.50)}           & \textbf{0.5882} & \textbf{0.6069} & \textbf{0.50} \\
+Official baseline (RoBERTa-base)          & --- & 0.48 & --- \\
+\bottomrule
+\end{tabular}
+\caption{Final system comparison on the official dev set.}
+\label{tab:final_results}
+\end{table}
 
 \subsection{Error Analysis}
 
@@ -384,6 +371,7 @@ Notably, \textbf{seed~7 achieves the best held-out test F1} (0.6034) despite hav
 The multi-seed results also serve as an implicit justification for ensembling: by combining the probability outputs of models trained under different seeds and architectures, we partially cancel out seed-specific idiosyncrasies, leading to more stable and slightly better predictions (ensemble F1 = 0.6069 vs.\ best single-seed F1 = 0.6034).
 
 % ============================================================
+\clearpage
 \section{Discussion}
 \label{sec:discussion}
 
@@ -396,12 +384,14 @@ The per-keyword analysis reveals an additional limitation: the model's performan
 With more time and compute, several improvements could be explored: (1) \textbf{larger models} such as \texttt{roberta-large} or \texttt{deberta-v3-base} have shown state-of-the-art performance on comparable tasks; (2) \textbf{data augmentation} through back-translation or paraphrase generation could increase the number of positive training examples; (3) \textbf{multi-task learning} using the fine-grained PCL category labels from Subtask 2 as auxiliary supervision could sharpen the binary classifier; (4) \textbf{curriculum learning} — starting with easy (high-confidence) examples and gradually introducing hard (ambiguous) ones — might improve convergence on the minority class.
 
 % ============================================================
+\clearpage
 \section{Conclusion}
 \label{sec:conclusion}
 
 This report has described a complete NLP pipeline for binary PCL detection as part of SemEval 2022 Task 4, Subtask 1. EDA revealed a severe 9.5:1 class imbalance and that PCL is characterised by subtle contextual and pragmatic signals rather than surface keywords alone, motivating the use of pre-trained contextual models and a Weighted Random Sampler. We proposed and implemented a dual-backbone ensemble (RoBERTa-base + DistilBERT) trained with grouped LLRD, cosine annealing, metadata prepending, multi-seed training, and threshold tuning. The final model achieved dev set F1 = 0.6069, substantially outperforming the 0.48 official baseline. Local evaluation confirmed that the remaining errors are concentrated in cases of indirect, politically framed, or low-frequency-category PCL, highlighting the inherent difficulty of detecting implicit condescension and pointing towards deeper pragmatic reasoning as a key direction for future work.
 
 % ============================================================
+\clearpage
 \section*{References}
 
 \begin{enumerate}
