@@ -14,7 +14,7 @@ Binary classification of Patronising and Condescending Language (PCL) towards vu
 | **Best model weights** | [`BestModel/roberta-base/`](BestModel/roberta-base/) |
 | **EDA notebook** | [`2_eda/eda.ipynb`](2_eda/eda.ipynb) |
 | **Baseline notebook** | [`3_baseline/RoBERTa_baseline.ipynb`](3_baseline/RoBERTa_baseline.ipynb) |
-| **Error analysis** | [`5_evaluation/README.md`](5_evaluation/README.md) |
+| **Error analysis** | [`5_evaluation/evaluation.ipynb`](5_evaluation/evaluation.ipynb) |
 
 `dev.txt` and `test.txt` each contain one prediction per line (`0` = No PCL, `1` = PCL).
 
@@ -24,41 +24,42 @@ Binary classification of Patronising and Condescending Language (PCL) towards vu
 
 ```
 pcl-classifier/
-├── dev.txt                   ← Dev set predictions (2,094 lines)
-├── test.txt                  ← Test set predictions (3,832 lines)
-│
+├── dev.txt                   <- Dev set predictions (2,094 lines)
+├── test.txt                  <- Test set predictions (3,832 lines)
+|
 ├── BestModel/
-│   ├── model.ipynb           ← Full training pipeline for the submitted model
-│   ├── roberta-base/         ← Saved weights of the best model (RoBERTa)
-│   └── deberta-base/         ← Saved weights of the DeBERTa model (used in ensemble experiments)
-│
+|   ├── model.ipynb           <- Full training pipeline for the submitted model
+|   ├── roberta-base/         <- Saved weights of the best model (RoBERTa, submitted)
+|   └── deberta-base/         <- Saved weights of the DeBERTa model (ensemble experiment)
+|
 ├── data/
-│   ├── dontpatronizeme_pcl.tsv       ← Full annotated dataset
-│   ├── train_semeval_parids-labels.csv
-│   ├── dev_semeval_parids-labels.csv
-│   ├── task4_test.tsv                ← Unlabelled official test set
-│   └── dontpatronizeme_categories.tsv
-│
+|   ├── dontpatronizeme_pcl.tsv       <- Full annotated dataset
+|   ├── train_semeval_parids-labels.csv
+|   ├── dev_semeval_parids-labels.csv
+|   ├── task4_test.tsv                <- Unlabelled official test set
+|   └── dontpatronizeme_categories.tsv
+|
 ├── 1_literature/
-│   ├── NLP_Specification.pdf
-│   └── DontPatronizeMe_ResearchPaper.pdf
-│
+|   ├── NLP_Specification.pdf
+|   └── DontPatronizeMe_ResearchPaper.pdf
+|
 ├── 2_eda/
-│   ├── eda.ipynb             ← Exploratory data analysis (Exercise 2)
-│   └── figures/              ← Saved EDA plots
-│
+|   ├── eda.ipynb             <- Exploratory data analysis (Exercise 2)
+|   └── figures/              <- Saved EDA plots
+|
 ├── 3_baseline/
-│   └── RoBERTa_baseline.ipynb
-│
+|   └── RoBERTa_baseline.ipynb
+|
 ├── 4_model/
-│   ├── model.ipynb           ← Earlier model experimentation notebook
-│   ├── dont_patronize_me.py  ← Data loading helper (also used by BestModel)
-│   └── SavedModels/          ← Intermediate checkpoints from experiments
-│
+|   ├── model.ipynb           <- Earlier model experimentation notebook
+|   ├── dont_patronize_me.py  <- Data loading helper (used by all notebooks)
+|   └── SavedModels/          <- Intermediate checkpoints from experiments
+|
 ├── 5_evaluation/
-│   └── README.md             ← Error analysis and local evaluation (Exercise 5.2)
-│
-└── SavedModels/              ← Multi-seed checkpoints (RoBERTa + DeBERTa)
+|   ├── evaluation.ipynb      <- Error analysis and local evaluation (Exercise 5.2)
+|   └── figures/              <- All figures and CSVs produced by evaluation.ipynb
+|
+└── SavedModels/              <- Multi-seed checkpoints (local only — excluded from git)
 ```
 
 ---
@@ -67,14 +68,14 @@ pcl-classifier/
 
 ### Problem and Baseline
 
-The task is a binary classification problem with a severe class imbalance: only ~9.5% of paragraphs in the training set are labelled PCL. The official RoBERTa-base baseline achieves F1 = 0.48 on the dev set and 0.49 on the test set.
+The task is a binary classification problem with a severe class imbalance: only ~9.5% of paragraphs in the training set are labelled PCL (orig\_label >= 2). The official RoBERTa-base baseline achieves F1 = 0.48 on the dev set and 0.49 on the test set.
 
 ### Proposed Approach
 
 The submitted system is a fine-tuned **`roberta-base`** model, selected after running a broader ensemble experiment. The core design decisions are:
 
 **1. Input Enrichment via Metadata Prepending**
-Each paragraph is prepended with its associated keyword and country tag (e.g. `[keyword: homeless] [country: USA]`). This gives the model lightweight contextual signals about the targeted community without changing the architecture.
+Each paragraph is prepended with its associated keyword and country using special entity-boundary tokens (`<e>keyword</e> <e>country</e> text`). This gives the model lightweight contextual signals about the targeted community without changing the architecture.
 
 **2. Weighted Random Sampler (WRS)**
 To address the 9.5:1 class imbalance, a `WeightedRandomSampler` is used during training so that PCL examples are oversampled in every batch. This prevents the model collapsing to the majority class.
@@ -86,13 +87,13 @@ Rather than applying a uniform learning rate across all transformer layers, lowe
 A warmup of 10% of total training steps followed by cosine annealing was used to stabilise early training and allow smooth convergence.
 
 **5. Label Smoothing**
-A label smoothing factor of 0.1 was applied to the cross-entropy loss to reduce overconfidence and improve generalisation on the minority class.
+A label smoothing factor of 0.1 was applied to the cross-entropy loss on the DeBERTa variant to reduce overconfidence and improve generalisation on the minority class.
 
 **6. Multi-seed Training + Decision Threshold Tuning**
-Each backbone was trained across three random seeds (42, 7, 123). After training, the classification threshold was tuned on the internal validation set (90/10 stratified split of the official train set) to maximise F1 of the positive class rather than defaulting to 0.5.
+Each backbone was trained across three random seeds (42, 7, 123). After training, the classification threshold was tuned on the internal validation set (stratified 90/10 split of the official train set) to maximise F1 of the positive class rather than defaulting to 0.5. The best RoBERTa threshold was **t = 0.60**.
 
 **7. Ensemble Experiment (Weighted Probability Averaging)**
-A weighted ensemble of `roberta-base` and `microsoft/deberta-v3-base` (trained with weight decay = 0.005 and label smoothing = 0.1) was evaluated. Predictions from the best seed of each model were combined via a weighted average of output probabilities. The best ensemble weight was w = 0.95 (RoBERTa) / 0.05 (DeBERTa).
+A weighted ensemble of `roberta-base` and `microsoft/deberta-v3-base` was evaluated. Predictions from the best seed of each model were combined via a weighted average of output probabilities. The best ensemble weight was w = 0.95 (RoBERTa) / 0.05 (DeBERTa).
 
 ### Final Decision
 

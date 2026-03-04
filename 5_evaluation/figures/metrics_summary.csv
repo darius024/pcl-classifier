@@ -1,0 +1,15 @@
+Metric,Value
+Model,roberta-base (seed=123)
+Decision threshold,0.6
+Dev F1 (PCL),0.5316
+Precision (PCL),0.5357
+Recall (PCL),0.5276
+AUC-PR,0.5775
+True Positives,105
+False Positives,91
+False Negatives,94
+True Negatives,1804
+FPR,0.048
+FNR,0.4724
+Baseline F1,0.48
+F1 improvement,0.0516
