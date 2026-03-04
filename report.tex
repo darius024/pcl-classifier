@@ -36,7 +36,7 @@ GitHub Repository: \url{https://github.com/darius024/pcl-classifier}}
 \clearpage
 \section{Introduction}
 
-Patronising and Condescending Language (PCL) is a subtle and socially harmful form of communication that often targets vulnerable communities such as the homeless, disabled, or refugees. Unlike overt hate speech, PCL can be difficult to detect because it is typically embedded within ostensibly positive or neutral framing; for example, describing vulnerable people as helpless or in need of saving, rather than as agents capable of self-determination.
+Patronising and Condescending Language (PCL) is a subtle and socially harmful form of communication that often targets vulnerable communities such as the homeless, disabled, or refugees. Unlike overt hate speech, PCL can be difficult to detect because it is typically embedded within ostensibly positive or neutral framing: for example, describing vulnerable people as helpless or in need of saving, rather than as agents capable of self-determination.
 
 This report describes work carried out for the SemEval 2022 Task 4, Subtask 1 shared task, which frames PCL detection as a \textbf{binary classification problem}: given a news paragraph, classify it as either containing PCL (class~1) or not (class~0). The evaluation metric is the F1 score of the positive (PCL) class, appropriate given the strong class imbalance in the dataset. The official RoBERTa-base baseline achieves F1 = 0.48 on the dev set; our submitted dual-backbone ensemble achieves \textbf{F1 = 0.6069}, an improvement of $+$0.1269.
 
@@ -91,7 +91,7 @@ The paper ``Don't Patronize Me! An Annotated Dataset with Patronizing and Condes
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{images/class_distribution_train_vs_dev.png}
-\caption{Class distribution across train and dev splits. Both maintain the same $\sim$9.5:1 No-PCL:PCL ratio (train: 7,537 / 794 PCL; dev: 2,094 / 199 PCL).}
+\caption{Class distribution across train and dev splits. Both maintain the same $\sim$9.5:1 No-PCL:PCL ratio (train: 8,375 / 794 PCL; dev: 2,094 / 199 PCL).}
 \label{fig:class_dist}
 \end{figure}
 
@@ -104,9 +104,9 @@ The paper ``Don't Patronize Me! An Annotated Dataset with Patronizing and Condes
 
 \subsubsection*{Analysis}
 
-The DPM corpus reflects a roughly \textbf{9.5:1 class imbalance} that is uniformly preserved across both splits (train: 7,537 examples, 794 PCL; dev: 2,094 examples, 199 PCL). This consistency confirms the split is stratified and that no distribution shift exists at the class level.
+The DPM corpus reflects a roughly \textbf{9.5:1 class imbalance} preserved uniformly across splits (train: 8,375 examples, 794 PCL; dev: 2,094 examples, 199 PCL), confirming the class ratio is consistent across both sets.
 
-Token length distributions are also consistent across splits: PCL examples have a slightly higher mean word count ($\sim$80--100 words) compared to No-PCL examples, though the medians are similar. Both splits share a long tail, but the 95th percentile stays below 200 words in each case.
+Token length distributions are also consistent across splits: PCL examples have a slightly higher mean word count ($\sim$54 words vs.\ $\sim$48 for No-PCL) with similar medians. Both splits share a right-skewed distribution; the 95th percentile is approximately 100--115 words across both classes and splits.
 
 \subsubsection*{Impact Statement}
 
@@ -114,7 +114,7 @@ The severe class imbalance directly motivates two modelling decisions:
 
 \begin{enumerate}[noitemsep]
     \item \textbf{Weighted Random Sampler (WRS):} During training, examples are sampled proportionally to the inverse of their class frequency. This ensures each mini-batch contains a roughly equal number of PCL and No-PCL examples, preventing the model from learning a trivially high-accuracy solution of always predicting ``No PCL''. Without this, the gradient signal from the minority class would be overwhelmed.
-    \item \textbf{\texttt{max\_length=256}:} Setting the transformer input length to 256 tokens captures the 95th percentile of sequence lengths without truncating most examples, while remaining computationally feasible. Sequences above this threshold are truncated, which affects fewer than 5\% of examples.
+    \item \textbf{\texttt{max\_length=256}:} The 95th percentile of sequence lengths is approximately 115 words ($\sim$150 subword tokens), comfortably within the 256-token limit. This ensures virtually no meaningful content is truncated while keeping memory usage feasible.
 \end{enumerate}
 
 \clearpage
@@ -174,7 +174,7 @@ HTML entities in the raw text are unescaped (e.g., \texttt{\&amp;} $\to$ \texttt
     \item \textbf{Grouped Layer-wise Learning Rate Decay (LLRD):} Transformer layers are divided into groups; lower (earlier) layers receive a smaller learning rate ($2 \times 10^{-5}$) to preserve general-purpose representations, while higher layers adapt faster to the PCL task.
     \item \textbf{Cosine annealing with linear warmup:} The learning rate is warmed up linearly over the first $\sim$6\% of training steps, then decays following a cosine schedule. This promotes smooth convergence and avoids aggressive early-stage updates.
     \item \textbf{Early stopping on validation F1:} A stratified 10\% hold-out of the training set is used as a validation set. Training halts when validation F1 does not improve for 3 consecutive epochs.
-    \item \textbf{Multi-seed training:} Each model is trained independently with three random seeds (42, 7, 123). The checkpoint with the best performance on the held-out dev set is selected for the final ensemble.
+    \item \textbf{Multi-seed training:} Each model is trained independently with three random seeds (42, 7, 123). The checkpoint with the best performance on the internal validation set is selected for the final ensemble.
     \item \textbf{Post-hoc threshold tuning:} After training, the decision threshold is swept on the validation set to find the value maximising F1, rather than defaulting to 0.5.
 \end{itemize}
 
@@ -395,9 +395,9 @@ DistilBERT (BestModel, seed=7)  & --- & 0.5455 & --- & 0.53 \\
 Model A (best-combined, seed=123) & 0.5851 & 0.5628 & $-$0.022 & 0.07 \\
 Model B (high-recall, seed=7)     & 0.5868 & 0.5208 & $-$0.066 & 0.09 \\
 \midrule
-\textbf{ORIGINAL ensemble (RoBERTa + BestModel DistilBERT)} & \textbf{0.5882} & \textbf{0.6069} & \textbf{$+$0.019} & \textbf{0.50} \\
-NEW ensemble A (RoBERTa + Model A) & 0.6115 & 0.5854 & $-$0.026 & 0.29 \\
-NEW ensemble B (RoBERTa + Model B) & 0.6207 & 0.5753 & $-$0.045 & 0.26 \\
+\textbf{Original ensemble (RoBERTa + BestModel DistilBERT)} & \textbf{0.5882} & \textbf{0.6069} & \textbf{$+$0.019} & \textbf{0.50} \\
+New ensemble A (RoBERTa + Model A) & 0.6115 & 0.5854 & $-$0.026 & 0.29 \\
+New ensemble B (RoBERTa + Model B) & 0.6207 & 0.5753 & $-$0.045 & 0.26 \\
 \bottomrule
 \end{tabular}
 \caption{Generalisation verification: val and test F1 for solo models and ensemble combinations. The original ensemble is the only system where test F1 exceeds val F1, a strong indicator of genuine generalisation.}
@@ -412,7 +412,7 @@ The new ensembles achieve higher val F1 (up to 0.6207) but significantly lower t
 \clearpage
 \subsection{Error Analysis}
 
-We compare the ensemble against the solo RoBERTa model as a reference system, since both sets of predictions are available. This mirrors the four-quadrant analysis described in the coursework specification.
+We compare the ensemble against the solo RoBERTa model as a reference system, since both sets of predictions are available.
 
 \subsubsection*{Comparison with Solo RoBERTa (Baseline Reference)}
 
