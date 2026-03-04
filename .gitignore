@@ -18,27 +18,14 @@ __pycache__/
 .vscode/
 .idea/
 
-# Downloaded helper modules (fetched at runtime)
-notebooks/dont_patronize_me.py
-
 # Data files (large, not to be committed)
 data/dontpatronizeme_pcl.tsv
 data/dontpatronizeme_categories.tsv
 data/task4_test.tsv
 
-# Figures (generated outputs)
-figures/
-
 # macOS
 .DS_Store
 
-# Model outputs and checkpoints
+# Model training intermediates (not submission)
 outputs/
-BestModel/
 *.pt
-*.bin
-*.safetensors
-
-# Submission outputs (regenerated from notebook)
-dev.txt
-test.txt
