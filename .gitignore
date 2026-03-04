@@ -35,7 +35,6 @@ figures/
 # Model outputs and checkpoints
 outputs/
 BestModel/
-SavedModels/
 *.pt
 *.bin
 *.safetensors
