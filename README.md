@@ -16,6 +16,7 @@ Binary classification of Patronising and Condescending Language (PCL) towards vu
 | **EDA notebook** | [`2_eda/eda.ipynb`](2_eda/eda.ipynb) |
 | **Baseline notebook** | [`3_baseline/RoBERTa_baseline.ipynb`](3_baseline/RoBERTa_baseline.ipynb) |
 | **Error analysis & evaluation** | [`5_evaluation/evaluation.ipynb`](5_evaluation/evaluation.ipynb) |
+| **Ablation study notebook** | [`5_evaluation/ablation_study.ipynb`](5_evaluation/ablation_study.ipynb) |
 
 `dev.txt` and `test.txt` each contain one prediction per line (`0` = No PCL, `1` = PCL).
 
@@ -57,12 +58,13 @@ pcl-classifier/
 │
 ├── 5_evaluation/
 │   ├── evaluation.ipynb       # Local evaluation and error analysis (Exercise 5.2)
-│   ├── figures/               # Saved plots and CSVs (confusion matrix, PR curve, per-keyword metrics, etc.)
+│   ├── ablation_study.ipynb   # Component ablation and generalisation verification
+│   ├── ablation_results/      # Ablation CSV results and bar charts
+│   ├── figures/               # Saved plots (confusion matrix, PR curve, per-keyword metrics, etc.)
 │   └── cache/                 # Cached model probability arrays (speeds up re-runs)
 │
-└── SavedModels/               # All intermediate multi-seed checkpoints from hyperparameter search
+└── SavedModels/               # All multi-seed checkpoints from hyperparameter search and ablation
     ├── hyperparam_search.log  # Full training log for all runs
-    ├── roberta-base/          # roberta-base seeds 42, 7, 123
     ├── roberta-drop0-bs4ga4/  # Best RoBERTa config — seeds 42, 7, 123
     ├── roberta-drop0-bs8ga2/
     ├── roberta-drop05-bs4ga4/
@@ -70,6 +72,8 @@ pcl-classifier/
     ├── distilbert-drop01-bs4ga4/
     ├── distilbert-drop01-bs8ga2/
     ├── distilbert-drop03-bs8ga2/ # Best DistilBERT config — seeds 42, 7, 123
+    ├── distilbert-best-combined/ # Ablation Variant A — all components removed
+    ├── distilbert-high-recall/   # Ablation Variant B — WRS and warmup removed
     └── deberta-base/          # DeBERTa experiments (not used in final submission)
 ```
 

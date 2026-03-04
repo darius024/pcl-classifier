@@ -189,10 +189,31 @@ HTML entities in the raw text are unescaped (e.g., \texttt{\&amp;} $\to$ \texttt
 
 % ============================================================
 \clearpage
+\section{Exercise 4 \& 5.1: Repository and Global Evaluation}
+
+\textbf{BestModel directory.} The \texttt{BestModel/} folder at the repository root contains all artefacts required by Exercise~4:
+
+\begin{itemize}[noitemsep]
+    \item \texttt{model.ipynb} --- the full training pipeline (data loading, WRS, LLRD, multi-seed loop, threshold tuning, ensemble, evaluation) as proposed in Exercise~3.
+    \item \texttt{roberta-base/} --- saved weights for the best RoBERTa-base checkpoint (drop=0.0, bs=4, ga=4, seed=7).
+    \item \texttt{distilbert/} --- saved weights for the best DistilBERT checkpoint (drop=0.3, bs=8, ga=2, seed=7).
+\end{itemize}
+
+\textbf{Submission files (Exercise 5.1).} The files \texttt{dev.txt} and \texttt{test.txt} are in the repository root, each containing one binary prediction per line (0 = No PCL, 1 = PCL):
+
+\begin{itemize}[noitemsep]
+    \item \texttt{dev.txt} --- 2,094 lines, matching the official dev set exactly.
+    \item \texttt{test.txt} --- 3,832 lines, matching the official test set exactly.
+\end{itemize}
+
+The ensemble achieves \textbf{F1 = 0.6069} on the official dev set, surpassing the 0.48 baseline by $+$0.1269. The GitHub repository link is on the front page of this report.
+
+% ============================================================
+\clearpage
 \section{Exercise 5: Local Evaluation}
 \label{sec:local}
 
-\textbf{Submission summary.} The \texttt{BestModel/} folder holds the saved checkpoints for both backbones. Submission files \texttt{dev.txt} (2,094 lines) and \texttt{test.txt} (3,832 lines) are in the repository root, one prediction per line (0 = No PCL, 1 = PCL). The ensemble achieves \textbf{F1 = 0.6069} on the official dev set, surpassing the baseline of 0.48 by $+$0.1269.
+The ensemble achieves \textbf{F1 = 0.6069} on the official dev set ($+$0.1269 above baseline). Table~\ref{tab:final_results} summarises the full system comparison.
 
 \begin{table}[H]
 \centering
@@ -365,7 +386,6 @@ Both variants achieved higher validation F1 during training (0.5851 and 0.5868 r
 
 \begin{table}[H]
 \centering
-\small
 \begin{tabular}{lcccc}
 \toprule
 Model & Val F1* & Test F1 & Val$\to$Test gap & $t$ \\
@@ -375,12 +395,12 @@ DistilBERT (submitted) & ---    & 0.5455 & ---      & 0.53 \\
 Variant A (seed=123)   & 0.5851 & 0.5628 & $-$0.022 & 0.07 \\
 Variant B (seed=7)     & 0.5868 & 0.5208 & $-$0.066 & 0.09 \\
 \midrule
-\textbf{Submitted ensemble}     & \textbf{0.5882} & \textbf{0.6069} & \textbf{$+$0.019} & \textbf{0.50} \\
-Ensemble + Variant A            & 0.6115 & 0.5854 & $-$0.026 & 0.29 \\
-Ensemble + Variant B            & 0.6207 & 0.5753 & $-$0.045 & 0.26 \\
+\textbf{Submitted ensemble}   & \textbf{0.5882} & \textbf{0.6069} & \textbf{$+$0.019} & \textbf{0.50} \\
+Ensemble + Variant A          & 0.6115 & 0.5854 & $-$0.026 & 0.29 \\
+Ensemble + Variant B          & 0.6207 & 0.5753 & $-$0.045 & 0.26 \\
 \bottomrule
 \end{tabular}
-\caption{Generalisation verification. Val F1* is the best-threshold score on the internal validation split. The submitted ensemble is the only system where test F1 exceeds val F1 ($+$0.019), a strong indicator of genuine generalisation.}
+\caption{Generalisation verification. Val F1* is the best-threshold score on the internal validation split. The submitted ensemble is the only system where test F1 exceeds val F1 ($+$0.019), confirming genuine generalisation.}
 \label{tab:gen_verify}
 \end{table}
 

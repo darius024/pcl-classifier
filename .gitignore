@@ -4,6 +4,7 @@ venv/
 .env/
 env/
 .venv*/
+.tmp-pip/
 
 # Python cache
 __pycache__/
