@@ -39,14 +39,14 @@ GitHub Repository: \url{https://github.com/darius024/pcl-classifier}}
 
 \subsection{Q1: Primary Contributions}
 
-The paper ``Don't Patronize Me! An Annotated Dataset with Patronizing and Condescending Language towards Vulnerable Communities'' by Pérez-Almendros et al.\ (2020, updated 2022 for SemEval) makes three primary contributions:
+The paper ``Don't Patronize Me! An Annotated Dataset with Patronizing and Condescending Language towards Vulnerable Communities'' by Pérez-Almendros et al.\ [1, 2] makes three primary contributions:
 
 \begin{itemize}
     \item \textbf{Dataset:} The authors introduce the \emph{Don't Patronize Me!} (DPM) corpus, consisting of over 10,000 paragraphs extracted from English-language news articles, each manually annotated for the presence of PCL towards vulnerable communities. Critically, annotations are made at both the document level (binary PCL/No-PCL) and the text-span level, where annotators highlight the specific spans that contain PCL, enabling fine-grained supervision at multiple levels. The paragraphs were collected by keyword search (e.g., ``homeless'', ``refugee'', ``disabled'') across articles from many countries, providing broad coverage.
 
     \item \textbf{Taxonomy:} The paper proposes a two-level, hierarchical taxonomy of PCL types focused on language directed at vulnerable communities. The first level distinguishes PCL from non-PCL. The second level decomposes PCL into seven fine-grained categories: \emph{Unbalanced Power Relations}, \emph{Shallow Solution}, \emph{Presupposition}, \emph{Authority Voice}, \emph{Metaphor}, \emph{Compassion}, and \emph{The Poorer the Merrier}. This taxonomy brings conceptual clarity to a previously informal notion, making annotation reproducible and enabling multi-label classification (Subtask 2 of SemEval 2022).
 
-    \item \textbf{Shared task organisation:} The authors organised SemEval 2022 Task 4, which challenged teams worldwide to build classifiers for binary PCL detection (Subtask 1) and fine-grained PCL category identification (Subtask 2). The shared task provided a standardised benchmark with official train/dev/test splits, evaluation scripts, and a leaderboard, promoting fair comparison across systems.
+    \item \textbf{Community benchmark:} Beyond organising the competition, the authors [2] established a reusable benchmark by releasing the corpus with official train/dev/test splits, evaluation scripts, and baseline results across several transformer architectures (including RoBERTa-base at F1~=~0.48). This gives subsequent researchers a concrete foundation: new approaches can be compared against documented systems on identical data without re-collecting or re-annotating, lowering the barrier for reproducible follow-on work.
 \end{itemize}
 
 \subsection{Q2: Technical Strengths}
@@ -66,7 +66,7 @@ The paper ``Don't Patronize Me! An Annotated Dataset with Patronizing and Condes
 
     \item \textbf{Shallow model analysis:} The baseline models presented (including RoBERTa-base) are described without detailed justification for hyperparameter choices such as learning rate, batch size, or class weighting strategy. There are no ablation studies showing the contribution of individual design decisions. Without such analysis, it is hard to tell whether the reported F1 of 0.48 is a reasonable lower bound or whether better tuning of the same architecture could have yielded significantly higher results.
 
-    \item \textbf{Limited generalisation discussion:} The dataset is drawn exclusively from English-language news articles via keyword-based search, meaning all examples are topically anchored to the chosen vulnerable-community terms. The authors do not discuss whether the taxonomy and models would generalise to other domains (e.g., social media, parliamentary speech, or informal text), other languages, or PCL targeting groups not included in the keyword list. The keyword-seeded collection strategy also risks introducing spurious correlations between keywords and labels that could inflate model performance without reflecting genuine PCL understanding.
+    \item \textbf{Limited generalisation discussion:} The dataset is drawn exclusively from English-language news articles via keyword-based search, meaning all examples are topically anchored to the chosen vulnerable-community terms. The authors do not discuss whether the taxonomy and models would generalise to other domains (e.g., social media, parliamentary speech, or informal text), other languages, or PCL targeting groups not included in the keyword list. The keyword-seeded collection strategy also risks introducing spurious correlations between keywords and labels that could inflate model performance without reflecting genuine PCL understanding. A related concern is uneven keyword representation: some PCL categories (for example, \textit{The Poorer the Merrier}) appear far more frequently than others, creating a within-class imbalance. This may cause models to associate category-specific lexical patterns with PCL in general, rather than learning a consistent notion of condescension across all categories.
 \end{itemize}
 
 % ============================================================
@@ -100,14 +100,14 @@ Token length distributions are also consistent across splits: PCL examples have 
 
 \subsubsection*{Impact Statement}
 
-The severe class imbalance directly motivates two modelling decisions:
+These observations directly inform two decisions applied in our pipeline:
 
 \begin{enumerate}[noitemsep]
-    \item \textbf{Weighted Random Sampler (WRS):} During training, examples are sampled proportionally to the inverse of their class frequency. This ensures each mini-batch contains a roughly equal number of PCL and No-PCL examples, preventing the model from learning a trivially high-accuracy solution of always predicting ``No PCL''. Without this, the gradient signal from the minority class would be overwhelmed.
-    \item \textbf{\texttt{max\_length=256}:} The 95th percentile of sequence lengths is approximately 115 words ($\sim$150 subword tokens), comfortably within the 256-token limit. This ensures virtually no meaningful content is truncated while keeping memory usage feasible.
+    \item \textbf{Weighted Random Sampler (WRS):} To counter the 9.5:1 imbalance, we sample training examples with per-class inverse-frequency weights, ensuring each mini-batch contains a roughly equal number of PCL and No-PCL examples. Without this, the gradient signal from the minority class would be overwhelmed and the model would converge to always predicting No-PCL.
+    \item \textbf{\texttt{max\_length=256}:} We set the tokeniser's maximum sequence length to 256. Since the 95th percentile of sequence lengths is $\sim$115 words ($\sim$150 subword tokens), this ensures virtually no content is truncated while keeping memory usage feasible.
 \end{enumerate}
 
-\subsection{EDA Technique 2: Lexical Analysis --- Log-Odds Contrast and Distinctive N-grams}
+\subsection{EDA Technique 2: Lexical Analysis (Log-Odds Contrast and Distinctive N-grams)}
 
 \subsubsection*{Visual/Tabular Evidence}
 
@@ -127,18 +127,18 @@ The severe class imbalance directly motivates two modelling decisions:
 
 \subsubsection*{Analysis}
 
-The log-odds contrast plot reveals that PCL examples disproportionately feature words relating to vulnerability and emotional framing, such as ``help'', ``need'', ``community'', ``support'', and ``people'' appear significantly more often in PCL text. The bigram analysis surfaces phrases like ``in need'', ``help them'', ``these people'', and ``the homeless'' as distinctive of PCL, which intuitively align with language that frames vulnerable communities as passive recipients of charity rather than active agents.
+The log-odds contrast plot shows that PCL examples disproportionately feature words relating to vulnerability and emotional framing: ``help'', ``need'', ``community'', ``support'', and ``people'' appear more often in PCL text. The bigram analysis identifies phrases such as ``in need'', ``help them'', ``these people'', and ``the homeless'' as distinctive of PCL, consistent with language that frames vulnerable communities as passive recipients of charity rather than active agents.
 
 However, many of these words (e.g., ``help'', ``community'') are equally common in genuinely supportive, non-condescending writing. This is the central challenge of PCL detection: \emph{surface-level lexical cues alone are insufficient}. Two texts using almost identical vocabulary can differ fundamentally in tone. The patronising quality often lies in implied power dynamics, presuppositions about the group's capabilities, or the framing of their situation as hopeless, none of which are directly recoverable from word frequencies alone.
 
 \subsubsection*{Impact Statement}
 
-This analysis informs two key design decisions:
+These findings motivate two decisions we apply throughout the pipeline:
 
 \begin{enumerate}[noitemsep]
-    \item \textbf{Pre-trained transformer models:} Because surface n-gram features are unreliable discriminators, models that encode contextual semantics are essential. RoBERTa-base and DistilBERT, both pre-trained on large corpora, capture nuances of tone and framing that bag-of-words approaches miss entirely.
+    \item \textbf{Pre-trained transformer models:} Since surface n-gram features are unreliable discriminators of PCL, we use RoBERTa-base [3] and DistilBERT [4] as our classifiers. Both are pre-trained on large corpora and encode contextual cues such as tone, framing, and presupposition that bag-of-words models cannot capture.
 
-    \item \textbf{Metadata prepending:} The dataset is collected via keyword search, so each example is associated with a vulnerable-community keyword (e.g., ``homeless'') and a country of origin. We include this information by prepending \texttt{<e>keyword</e> <e>country</e>} to every input paragraph. This provides the model with structured prior knowledge about which vulnerable group is being discussed and the geopolitical context, both of which influence the style and likelihood of PCL. As seen in the per-keyword analysis (Section~\ref{sec:local}), different keywords have significantly different base rates of PCL, so this context signal is genuinely useful.
+    \item \textbf{Metadata prepending:} We prepend the community keyword and country of origin to every input as structured context:\ \texttt{<e>keyword</e>\ <e>country</e>\ \{text\}}. This gives the model explicit prior knowledge about which vulnerable group is being discussed and the geopolitical setting, both of which influence the likelihood and style of PCL. The per-keyword analysis (Section~\ref{sec:local}) confirms that different keywords carry substantially different PCL base rates, validating this context signal.
 \end{enumerate}
 
 % ============================================================
@@ -148,44 +148,70 @@ This analysis informs two key design decisions:
 
 \subsection{Proposed Approach}
 
-Our proposed approach is a \textbf{dual-backbone ensemble} combining \texttt{roberta-base} and \texttt{distilbert-base-uncased}, trained with several techniques to address the key challenges identified during EDA: severe class imbalance, subtle linguistic signals, and limited labelled data.
+Our proposed system is a \textbf{dual-backbone ensemble} of \texttt{roberta-base} and \texttt{distilbert-base-\allowbreak{}uncased}, designed to address the key challenges from EDA: a 9.5:1 class imbalance, subtle pragmatic signals, and limited labelled positives.
 
-\textbf{Input representation.} Each input to both models is formatted as:
+\subsubsection*{Input Representation}
+
+Each input to both models is formatted as:
 \begin{center}
     \texttt{<e>keyword</e>\ \ <e>country</e>\ \ \{paragraph text\}}
 \end{center}
-HTML entities in the raw text are unescaped (e.g., \texttt{\&amp;} $\to$ \texttt{\&}) before tokenisation. Each input is padded or truncated to \texttt{max\_length=256}.
-
-\textbf{Training procedure.} Both models are fine-tuned for up to 10 epochs with the following components:
-
 \begin{itemize}[noitemsep]
-    \item \textbf{Weighted Random Sampler (WRS):} Per-class inverse-frequency weights ensure balanced mini-batches.
-    \item \textbf{Grouped Layer-wise Learning Rate Decay (LLRD):} Transformer layers are divided into groups; lower (earlier) layers receive a smaller learning rate ($2 \times 10^{-5}$) to preserve general-purpose representations, while higher layers adapt faster to the PCL task.
-    \item \textbf{Cosine annealing with linear warmup:} The learning rate is warmed up linearly over the first $\sim$6\% of training steps, then decays following a cosine schedule. This promotes smooth convergence and avoids aggressive early-stage updates.
-    \item \textbf{Early stopping on validation F1:} A stratified 10\% hold-out of the training set is used as a validation set. Training halts when validation F1 does not improve for 3 consecutive epochs.
-    \item \textbf{Multi-seed training:} Each model is trained independently with three random seeds (42, 7, 123). The checkpoint with the best performance on the internal validation set is selected for the final ensemble.
-    \item \textbf{Post-hoc threshold tuning:} After training, the decision threshold is swept on the validation set to find the value maximising F1, rather than defaulting to 0.5.
+    \item HTML entities in the raw text are unescaped before tokenisation (e.g.\ \texttt{\&amp;} $\to$ \texttt{\&}).
+    \item The community keyword and country are prepended as structured metadata to provide community-specific context at inference time.
+    \item Inputs are tokenised with \texttt{max\_length=256} and truncation enabled (RoBERTa BPE tokeniser; DistilBERT WordPiece tokeniser).
 \end{itemize}
 
-\textbf{Ensemble.} Final predictions are computed by averaging the class-1 softmax probabilities from the best RoBERTa-base checkpoint (seed~7, dropout=0.0, batch size 4, gradient accumulation 4) and the best DistilBERT checkpoint (seed~7, dropout=0.3, batch size 8, gradient accumulation 2), with equal weights (50/50). A threshold of 0.50 is applied to the averaged probability to produce binary predictions.
+\subsubsection*{Training Procedure}
+
+A stratified 10\% hold-out of the official training set is reserved as an internal validation split for early stopping and threshold selection. Both backbones are then trained independently for up to 10 epochs with:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Weighted Random Sampler (WRS):} per-class inverse-frequency weights produce balanced mini-batches of PCL and No-PCL examples.
+    \item \textbf{Grouped layer-wise learning rate decay (LLRD):} lower transformer layers use $2 \times 10^{-5}$; upper layers and the classifier head receive a higher learning rate for task-specific adaptation.
+    \item \textbf{Cosine annealing with linear warmup:} the rate warms up linearly over the first $\sim$6\% of training steps, then decays following a cosine schedule.
+    \item \textbf{Early stopping:} training halts when validation F1 fails to improve for 3 consecutive epochs.
+    \item \textbf{Multi-seed selection:} each backbone is trained with seeds 42, 7, and 123; the checkpoint with the highest internal validation F1 is carried forward.
+    \item \textbf{Post-hoc threshold tuning:} the decision threshold is swept on the internal validation set; the value maximising F1 is selected.
+\end{itemize}
+
+\subsubsection*{Ensemble and Prediction}
+
+\begin{itemize}[noitemsep]
+    \item Class-1 softmax probabilities from the best RoBERTa checkpoint (drop=0.0, bs=4, ga=4, seed=7) and the best DistilBERT checkpoint (drop=0.3, bs=8, ga=2, seed=7) are averaged with equal weights (0.50/0.50).
+    \item A threshold of 0.50 is applied to the averaged probability to produce binary predictions.
+    \item Predictions are written to \texttt{dev.txt} and \texttt{test.txt}.
+\end{itemize}
 
 \subsection{Rationale and Expected Outcome}
 
-\textbf{Transfer learning} is the primary driver of performance. Both RoBERTa-base and DistilBERT are pre-trained on hundreds of gigabytes of text and encode rich contextual representations of framing, presupposition, and implied power dynamics that simpler bag-of-words models miss entirely. This is especially important for PCL, where the same vocabulary can appear in both condescending and genuinely supportive writing.
+\subsubsection*{Base Models: RoBERTa-base and DistilBERT}
 
-\textbf{Weighted Random Sampler (WRS)} addresses two distinct problems. First and most obviously, it corrects the 9.5:1 class imbalance by ensuring each mini-batch contains a roughly equal number of PCL and No-PCL examples, preventing the model from converging to the degenerate ``always predict No-PCL'' solution. Second, and more subtly, WRS is essential for \emph{probability calibration}. Without it, the model is exposed to roughly 10$\times$ more negative examples per batch and learns to push all output probabilities toward zero. This forces the optimal decision threshold far below 0.50 (as low as $t=0.07$--$0.14$ in our experiments), a threshold that is specific to the validation set distribution and fails to generalise. When both backbones are trained with WRS, their probabilities are well-calibrated and the ensemble combines them naturally at equal weights with a single threshold of 0.50.
+Standard BERT trained on 16~GB of text using masked-language modelling (MLM) and next-sentence prediction (NSP). RoBERTa [3] improved on BERT by training for longer on 160~GB of text, removing NSP, and switching to dynamic masking, producing representations that are more robust to domain shift. DistilBERT [4] compresses BERT via knowledge distillation into a model with 40\% fewer parameters and 60\% faster inference, retaining $\sim$97\% of BERT-level performance.
 
-\textbf{Grouped LLRD} is motivated by the catastrophic forgetting problem. Updating all transformer layers at the same high learning rate destroys the general-purpose representations learnt during pre-training. By assigning smaller learning rates to lower layers ($2 \times 10^{-5}$) and larger rates to upper layers and the classifier head, we preserve broad linguistic knowledge while allowing task-specific adaptation in the layers closest to the output.
+We choose these two models specifically because their differences make them complementary: distinct architectures (12 vs.\ 6 layers), tokenisers (byte-pair encoding vs.\ WordPiece), and pre-training signals result in partially uncorrelated errors. This is the key condition for an ensemble gain: when one model misclassifies an example the other does not, averaging their outputs corrects the error. For a task like PCL, where the signal is subtle and the dataset small, combining two well-chosen backbones is expected to be more effective than scaling a single model.
 
-\textbf{Post-hoc threshold tuning} accounts for residual miscalibration. Even with WRS, the optimal decision boundary for F1 is rarely exactly 0.50 for individual models: our best solo RoBERTa checkpoint requires $t=0.75$ (higher precision, lower recall), while different seeds can require thresholds anywhere from 0.12 to 0.87. Sweeping the threshold on the held-out validation set finds the value that maximises F1 without touching the test data.
+\subsubsection*{Training Methodology}
 
-\textbf{Multi-seed training} addresses the well-known instability of fine-tuning large transformers on small, imbalanced datasets. Minor differences in mini-batch ordering early in training shift the model towards different local minima, so the same configuration trained with three seeds can yield F1 values spanning $\sim$0.03 and optimal thresholds spanning 0.75. Training multiple seeds and selecting the best-performing checkpoint on the internal validation set reduces the risk of reporting a lucky or unlucky single run.
+Each of the following components addresses a specific challenge identified in the EDA or known from the fine-tuning literature:
 
-\textbf{Metadata prepending} (keyword and country) provides explicit context about which vulnerable community is discussed. The log-odds analysis (Section~\ref{sec:eda}) showed that vocabulary and PCL frequency vary substantially across keywords, so this structured prefix helps the model calibrate appropriately and is expected to be most beneficial for keywords with distinctive lexical patterns.
+\textbf{Weighted Random Sampler (WRS):} Addresses two problems simultaneously. First, it corrects the 9.5:1 class imbalance by ensuring balanced mini-batches, preventing convergence to the degenerate always-predict-No-PCL solution. Second, and more critically, it is essential for probability calibration: without WRS, the model sees $\sim$10$\times$ more negative examples per batch and learns to push all outputs toward zero, forcing the optimal threshold as low as $t=0.07$--$0.14$ in our experiments, a value specific to the validation distribution that does not transfer to unseen data.
 
-\textbf{Ensemble diversity} compounds all the above. RoBERTa-base (12 layers, 125M parameters, byte-pair encoding) and DistilBERT (6 layers, 67M parameters, WordPiece) have different architectures, pre-training objectives, and tokenisers, so their errors are partially uncorrelated. Averaging their WRS-calibrated probability outputs reduces variance and is expected to push performance beyond any individual checkpoint.
+\textbf{Grouped Layer-wise Learning Rate Decay (LLRD):} Prevents catastrophic forgetting. Updating all layers at the same rate risks overwriting the general linguistic representations learnt during pre-training. We assign smaller learning rates to lower transformer layers ($2 \times 10^{-5}$) and progressively larger rates to upper layers and the classifier head, preserving general knowledge while allowing task-specific adaptation near the output.
 
-\textbf{Expected outcome.} A well-tuned RoBERTa-base should achieve F1~$\sim$0.55--0.60, well above the 0.48 baseline. The ensemble should provide a further incremental gain from error decorrelation. Both backbones trained with WRS should combine at equal weights ($t=0.50$) without requiring per-model threshold or weight tuning, reducing overfitting to the validation set. The ablation study in Section~4.2 tests these expectations systematically.
+\textbf{Cosine annealing with linear warmup:} The warmup phase prevents large early-stage updates from destabilising pre-trained weights. The subsequent cosine decay reduces the rate smoothly, favouring convergence to a flatter and more generalisable minimum than step-decay or constant schedules.
+
+\textbf{Post-hoc threshold tuning:} Even with WRS, the F1-optimal boundary for individual models is rarely 0.50 (the best solo RoBERTa requires $t=0.75$; seeds span 0.12--0.87). We sweep the threshold on the held-out validation set to find the F1-maximising value without using test data.
+
+\textbf{Multi-seed training:} Fine-tuning large transformers on small, imbalanced datasets is unstable. The same configuration with three seeds can produce F1 values spanning $\sim$0.03 and optimal thresholds spanning 0.75. Training three seeds and selecting the best checkpoint avoids over-reliance on a single random initialisation.
+
+\textbf{Metadata prepending:} The log-odds analysis (Section~\ref{sec:eda}) shows that PCL frequency varies substantially across keywords. By prepending the community keyword and country to every input, the model receives explicit context about which vulnerable group is being discussed, helping it calibrate appropriately per category.
+
+\subsubsection*{Overall Expected Outcomes and Potential Drawbacks}
+
+Taken together, these components prioritise test-set generalisation over training performance. WRS and LLRD act as implicit regularisers that reduce overfitting to the training distribution; multi-seed selection avoids committing to a lucky or unlucky random initialisation; and ensembling two architecturally distinct, WRS-calibrated backbones smooths seed-specific biases and combines complementary error patterns. We expect the ensemble to reach F1~$\sim$0.55--0.62 on the dev set, with probability outputs compatible at a shared threshold of 0.50 and equal weights, without requiring per-model calibration.
+
+There are genuine trade-offs. WRS over-samples positive examples, which may amplify noise from borderline or ambiguously labelled PCL instances and slow convergence. LLRD group boundaries are heuristic; they may not align precisely with how the model internally partitions general vs.\ task-specific knowledge. Tripling the compute for multi-seed training reduces the number of hyperparameter configurations we can explore. Finally, ensembling makes the system harder to interpret and roughly doubles inference time. The ablation study in Section~\ref{sec:ablation} tests these expectations and trade-offs systematically.
 
 % ============================================================
 \clearpage
@@ -194,16 +220,16 @@ HTML entities in the raw text are unescaped (e.g., \texttt{\&amp;} $\to$ \texttt
 \textbf{BestModel directory.} The \texttt{BestModel/} folder at the repository root contains all artefacts required by Exercise~4:
 
 \begin{itemize}[noitemsep]
-    \item \texttt{model.ipynb} --- the full training pipeline (data loading, WRS, LLRD, multi-seed loop, threshold tuning, ensemble, evaluation) as proposed in Exercise~3.
-    \item \texttt{roberta-base/} --- saved weights for the best RoBERTa-base checkpoint (drop=0.0, bs=4, ga=4, seed=7).
-    \item \texttt{distilbert/} --- saved weights for the best DistilBERT checkpoint (drop=0.3, bs=8, ga=2, seed=7).
+    \item \texttt{model.ipynb}: the full training pipeline (data loading, WRS, LLRD, multi-seed loop, threshold tuning, ensemble, evaluation) as proposed in Exercise~3.
+    \item \texttt{roberta-base/}: saved weights for the best RoBERTa-base checkpoint (drop=0.0, bs=4, ga=4, seed=7).
+    \item \texttt{distilbert/}: saved weights for the best DistilBERT checkpoint (drop=0.3, bs=8, ga=2, seed=7).
 \end{itemize}
 
 \textbf{Submission files (Exercise 5.1).} The files \texttt{dev.txt} and \texttt{test.txt} are in the repository root, each containing one binary prediction per line (0 = No PCL, 1 = PCL):
 
 \begin{itemize}[noitemsep]
-    \item \texttt{dev.txt} --- 2,094 lines, matching the official dev set exactly.
-    \item \texttt{test.txt} --- 3,832 lines, matching the official test set exactly.
+    \item \texttt{dev.txt}: 2,094 lines, matching the official dev set exactly.
+    \item \texttt{test.txt}: 3,832 lines, matching the official test set exactly.
 \end{itemize}
 
 The ensemble achieves \textbf{F1 = 0.6069} on the official dev set, surpassing the 0.48 baseline by $+$0.1269. The GitHub repository link is on the front page of this report.
@@ -213,7 +239,7 @@ The ensemble achieves \textbf{F1 = 0.6069} on the official dev set, surpassing t
 \section{Exercise 5: Local Evaluation}
 \label{sec:local}
 
-The ensemble achieves \textbf{F1 = 0.6069} on the official dev set ($+$0.1269 above baseline). Table~\ref{tab:final_results} summarises the full system comparison.
+This section presents the local evaluation of our submitted system. Table~\ref{tab:final_results} summarises results across all trained configurations; the subsections below analyse performance in detail.
 
 \begin{table}[H]
 \centering
@@ -224,20 +250,22 @@ System & Val F1 & Dev F1 & Threshold \\
 Solo RoBERTa (drop=0.0, bs=4, ga=4, seed=7)       & 0.5795 & 0.5955 & 0.75 \\
 Solo DistilBERT (drop=0.3, bs=8, ga=2, seed=7)     & 0.5818 & 0.5463 & 0.50 \\
 \textbf{Ensemble (w=0.50/0.50)}                    & \textbf{0.5882} & \textbf{0.6069} & \textbf{0.50} \\
-Official baseline (RoBERTa-base, no tuning)        & --- & 0.48 & --- \\
+Official baseline (RoBERTa-base, no tuning)        & -- & 0.48 & -- \\
 \bottomrule
 \end{tabular}
-\caption{Final system comparison on the official dev set. Val F1 is the best-threshold score on the held-out validation split used during development.}
+\caption{Final system comparison on the official dev set. Val F1 is the best-threshold score on the held-out validation split.}
 \label{tab:final_results}
 \end{table}
 
 % ============================================================
-\subsection{Confusion Matrix and Core Metrics}
+\subsection{Quantitative Performance Evaluation}
+
+\subsubsection*{Confusion Matrix}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.88\textwidth]{images/confusion_matrix.png}
-\caption{Confusion matrix on the dev set (counts, left; row-normalised recall per class, right). The ensemble uses equal weights (0.50/0.50) and threshold 0.50.}
+\caption{Confusion matrix on the dev set (counts, left; row-normalised recall per class, right). Ensemble weights 0.50/0.50, threshold 0.50.}
 \label{fig:cm}
 \end{figure}
 
@@ -252,9 +280,9 @@ False Positives (FP)   & 102   & No-PCL flagged as PCL \\
 False Negatives (FN)   & 69    & PCL examples missed \\
 True Positives (TP)    & 130   & Correct PCL predictions \\
 \midrule
-Precision (PCL)        & 0.560 & Of flagged examples, 56\% are truly PCL \\
-Recall (PCL)           & 0.653 & 65.3\% of PCL examples detected \\
-F1 (PCL)               & 0.603 & Harmonic mean \\
+Precision (PCL)        & 0.560 & 56\% of flagged examples are truly PCL \\
+Recall (PCL)           & 0.653 & 65.3\% of all PCL examples detected \\
+F1 (PCL)               & 0.603 & Harmonic mean of precision and recall \\
 False Positive Rate    & 0.054 & 5.4\% of No-PCL examples incorrectly flagged \\
 False Negative Rate    & 0.347 & 34.7\% of PCL examples missed \\
 \bottomrule
@@ -263,21 +291,37 @@ False Negative Rate    & 0.347 & 34.7\% of PCL examples missed \\
 \label{tab:cm_stats}
 \end{table}
 
-The model is \emph{conservative}: it correctly classifies 94.6\% of No-PCL examples (low FPR), but misses 34.7\% of PCL examples (high FNR). Given the 9.5:1 class imbalance, the model retains a strong prior towards predicting ``No PCL''; only examples where the ensemble is fairly confident flip the decision. The result is higher-than-expected precision (0.560) at the cost of limited recall on the minority class.
+The ensemble operates at a precision-oriented point: it correctly identifies 130 of 199 PCL examples (recall 0.653) but misses 69, and incorrectly flags only 102 No-PCL examples (FPR 5.4\%). The asymmetry between FPR (5.4\%) and FNR (34.7\%) reflects a cautious decision boundary: the model predicts PCL only when the averaged ensemble probability clears 0.50, which, thanks to WRS calibration, functions as a genuine midpoint rather than an artefact of probability collapse. Most predictions default to No-PCL; PCL is flagged only when both backbones agree.
+
+This behaviour is expected given the 9.5:1 imbalance: even with balanced mini-batches during training, the test distribution remains skewed and drives the model toward the majority class on borderline examples. The F1 of 0.603 reflects a reasonable trade-off for the SemEval criterion: lowering the threshold would recover more PCL cases but at the cost of more FPs, which are themselves misleading in a content-flagging application.
+
+\subsubsection*{Precision-Recall Curve}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.72\textwidth]{images/pr_curve_threshold.png}
-\caption{Precision--Recall curve for the ensemble on the dev set. AUC-PR = 0.5906. The dashed line marks the chosen threshold (0.50).}
+\caption{Precision--Recall curve for the ensemble on the dev set. AUC-PR = 0.5906. The dashed vertical line marks the chosen threshold (0.50).}
 \label{fig:pr_curve}
 \end{figure}
 
-The AUC-PR of \textbf{0.5906} is substantially higher than the no-skill baseline of $\approx$0.095 (equal to the PCL base rate), confirming real discriminative power. Key trade-offs: recall $>$0.85 is achievable at precision $\sim$0.25--0.30 (appropriate for large-scale auditing); threshold 0.75 yields precision $>$0.70 at recall $\approx$0.50 (preferable when false positives are costly); our chosen threshold of 0.50 maximises F1 in line with the SemEval criterion.
+The AUC-PR of \textbf{0.5906} is roughly 6$\times$ higher than the no-skill baseline of $\approx$0.095 (equal to the PCL base rate), confirming that the ensemble has learnt genuine discriminative signal rather than class-frequency heuristics.
+
+The shape of the curve reveals three distinct operating regimes, each appropriate for a different use case:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{High recall (threshold $\lesssim$0.25):} recall $>$0.85 at precision $\sim$0.25--0.30. Suitable for auditing or research where missing PCL is the primary concern and false positives can be reviewed manually.
+    \item \textbf{Balanced (threshold $\approx$0.50, chosen):} precision = 0.560, recall = 0.653, F1 = 0.603. Selected in line with the SemEval F1 criterion.
+    \item \textbf{High precision (threshold $\approx$0.75):} precision $>$0.70 at recall $\approx$0.50. Preferred when false positives are costly, for example in automated content moderation where incorrect flags cause direct harm.
+\end{itemize}
+
+The steep drop in precision at high recall (left side of the curve) is characteristic of imbalanced classification: only a small subset of examples carry strong PCL signal, and model confidence degrades quickly as more borderline cases are included. This is consistent with the per-keyword findings in Section~\ref{sec:errors}: categories with distinctive lexical markers (\textit{in-need}, \textit{homeless}) contribute most of the high-confidence TP detections, while subtler categories reduce precision as the threshold is lowered.
+
+\subsubsection*{Training Stability: Multi-Seed Analysis}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.70\textwidth]{images/multi_seed_comparison.png}
-\caption{RoBERTa-base (drop=0.0, bs=4, ga=4) trained with three different random seeds; bar heights show best-threshold F1 on the dev set.}
+\caption{RoBERTa-base (drop=0.0, bs=4, ga=4) trained with three different random seeds. Bar heights show best-threshold F1 on the dev set.}
 \label{fig:multi_seed}
 \end{figure}
 
@@ -296,13 +340,20 @@ Seed & Best threshold & Dev F1 & AUC-PR \\
 \label{tab:multi_seed}
 \end{table}
 
-The same architecture with three seeds spans F1 0.569--0.603 with optimal thresholds from 0.12 to 0.87, illustrating the well-known instability of fine-tuning large transformers on small, imbalanced datasets. Defaulting to $t=0.5$ would be sub-optimal for two of the three seeds. This variance directly motivates ensembling: averaging probabilities over multiple seeds and architectures smooths seed-specific biases, producing a more calibrated score distribution and the ensemble's improved dev F1 of 0.6069.
+Training the same configuration with three random seeds reveals two important observations.
+
+First, the dev F1 scores span 0.569--0.603 (a gap of 0.034). Given that our target is to improve over the 0.48 baseline, this variance is non-trivial: there is a 2-in-3 chance of selecting a weaker checkpoint without multi-seed evaluation. Post-hoc threshold tuning is essential to extract each seed's best performance; defaulting to $t=0.50$ would be sub-optimal for two of the three seeds.
+
+Second, and more telling, are the optimal thresholds: 0.12, 0.62, and 0.87 for seeds 42, 123, and 7 respectively, a spread of 0.75. Despite this, the AUC-PR values are tightly clustered at 0.567--0.584 (gap of only 0.017). This contrast is informative: similar AUC-PR means the three checkpoints have learnt a similar underlying discriminative signal, but their output probabilities are on very different scales. Seed 42 collapses probabilities toward zero (requiring $t=0.12$ to recover F1, a sign of residual miscalibration even with WRS); seed 7 distributes probabilities more uniformly across $[0,1]$ and demands a high threshold to avoid over-flagging. This is the core motivation for multi-seed training: not just variance in F1, but variance in calibration that would make naive 50/50 ensembling unreliable without WRS.
+
+The ensemble (dev F1 = 0.6069) outperforms the best single seed (0.6034, seed~7) by combining independently calibrated probability outputs. With both backbones trained with WRS, the averaged probabilities are compatible at a single threshold of 0.50, eliminating the need for per-model calibration.
 
 % ============================================================
 \clearpage
-\subsection{Ablation Study}
+\subsection{Ablation Study: Verifying Design Decisions}
+\label{sec:ablation}
 
-We conducted a three-part ablation to verify the design decisions made in Section~3. All controlled experiments use \texttt{distilbert-base-uncased} (seed=42) as a controlled backbone (smaller and faster than RoBERTa). Results confirm that the submitted ensemble is the best-generalising system (test F1 = 0.6069).
+We conducted a three-part ablation to verify the design decisions proposed in Section~3. All controlled experiments use \texttt{distilbert-base-uncased} (seed=42) as the backbone, a faster and smaller model that enables rapid iteration. Results confirm that the submitted ensemble achieves the highest test F1 (0.6069) and is the only configuration that generalises from validation to test.
 
 \subsubsection*{Part A: Component Ablation}
 
@@ -375,14 +426,14 @@ Three findings confirm the Section~3 expectations. \textbf{(1) Dropout is the mo
 
 \subsubsection*{Part C: Generalisation Verification}
 
-Based on the component ablation results, we trained two new DistilBERT variants via \texttt{improved\_distilbert.py} across three seeds, selecting the best checkpoint per variant. Both were designed to capitalise on the positive ablation deltas observed above:
+Based on the component ablation results, we trained two new DistilBERT variants across three seeds (selecting the best checkpoint per variant), specifically designed to capitalise on the positive ablation deltas observed above:
 
 \begin{itemize}[noitemsep]
     \item \textbf{Variant A}: all four components (metadata, WRS, LLRD, warmup) removed; dropout=0.3.
     \item \textbf{Variant B}: only WRS and warmup removed; dropout=0.1.
 \end{itemize}
 
-Both variants achieved higher validation F1 during training (0.5851 and 0.5868 respectively), appearing to outperform the original DistilBERT checkpoint (val F1 not directly comparable as thresholds differ, but higher on the internal split), which motivated their evaluation as ensemble partners.
+Both variants achieved higher validation F1 during training (Variant A: 0.5851; Variant B: 0.5868) compared to the submitted DistilBERT checkpoint, which motivated evaluating them as potential ensemble partners.
 
 \begin{table}[H]
 \centering
@@ -390,8 +441,8 @@ Both variants achieved higher validation F1 during training (0.5851 and 0.5868 r
 \toprule
 Model & Val F1* & Test F1 & Val$\to$Test gap & $t$ \\
 \midrule
-RoBERTa (submitted)    & ---    & 0.5955 & ---      & 0.75 \\
-DistilBERT (submitted) & ---    & 0.5455 & ---      & 0.53 \\
+RoBERTa (submitted)    & --     & 0.5955 & --       & 0.75 \\
+DistilBERT (submitted) & --     & 0.5455 & --       & 0.53 \\
 Variant A (seed=123)   & 0.5851 & 0.5628 & $-$0.022 & 0.07 \\
 Variant B (seed=7)     & 0.5868 & 0.5208 & $-$0.066 & 0.09 \\
 \midrule
@@ -410,13 +461,14 @@ Despite higher training-time validation scores, both new variants generalise poo
 
 % ============================================================
 \clearpage
-\subsection{Error Analysis}
+\subsection{Error Analysis: Failure Modes and Per-Keyword Performance}
+\label{sec:errors}
 
 We compare the ensemble against the solo RoBERTa model as a reference system, since both sets of predictions are available.
 
 \subsubsection*{Comparison with Solo RoBERTa (Baseline Reference)}
 
-The solo RoBERTa model achieves test F1 = 0.5955; the ensemble achieves 0.6069. The improvement ($+$0.011) comes from correcting cases where RoBERTa errs but DistilBERT is right, without introducing too many new errors. Figure~\ref{fig:rvd} (Section~4.2) directly visualises this:
+The solo RoBERTa model achieves dev F1 = 0.5955; the ensemble achieves 0.6069, a gain of $+$0.011. This improvement comes from cases where RoBERTa errs but DistilBERT does not, without introducing proportionally many new errors. Figure~\ref{fig:rvd} (Section~\ref{sec:ablation}) visualises the four prediction overlap categories:
 
 \begin{itemize}[noitemsep]
     \item \textbf{(a) Both correct:} the large majority of examples; both models agree on the dominant No-PCL class.
@@ -425,7 +477,7 @@ The solo RoBERTa model achieves test F1 = 0.5955; the ensemble achieves 0.6069. 
     \item \textbf{(d) Ensemble correct, RoBERTa wrong:} the primary source of the ensemble's gain. DistilBERT's different inductive biases (lighter architecture, distinct tokenisation) allow it to catch some PCL examples that RoBERTa misses, particularly in categories such as \textit{in-need} and \textit{homeless} where PCL is more lexically distinctive.
 \end{itemize}
 
-The asymmetry (more (d) than (c)) confirms that ensembling genuinely diversifies the predictions rather than merely averaging noise.
+The asymmetry (more examples in category (d) than (c)) confirms that the ensemble genuinely diversifies predictions rather than averaging noise.
 
 \subsubsection*{Manual Inspection of False Positives and False Negatives}
 
@@ -483,26 +535,26 @@ women         & 6.0\%  & 0.545 & 0.429 & 0.480 \\
 \label{tab:per_keyword}
 \end{table}
 
-Performance correlates strongly with the PCL base rate per keyword: \textbf{in-need} (F1=0.729, rate=14.6\%) and \textbf{homeless} (F1=0.689, rate=13.7\%) are the strongest categories, while \textbf{women} (F1=0.480, rate=6.0\%), \textbf{migrant} (F1=0.500, rate=2.4\%), and \textbf{refugee} (F1=0.519, rate=6.9\%) are the weakest. This suggests the model learns some keyword-specific patterns rather than a fully transferable PCL concept; a model that truly understood PCL should perform more uniformly. \textbf{Immigrant} achieves perfect precision (1.000) but low recall (0.429): every flagged case is correct, but most PCL examples in this category are missed, likely because immigrant-related PCL takes subtle forms rarely seen during training.
+Performance correlates with the PCL base rate per keyword: \textbf{in-need} (F1=0.729, rate=14.6\%) and \textbf{homeless} (F1=0.689, rate=13.7\%) are the strongest-performing categories, while \textbf{women} (F1=0.480, rate=6.0\%), \textbf{migrant} (F1=0.500, rate=2.4\%), and \textbf{refugee} (F1=0.519, rate=6.9\%) are the weakest. This pattern suggests the model exploits keyword-specific lexical cues rather than a fully transferable notion of PCL. \textbf{Immigrant} is a notable outlier: perfect precision (1.000) but low recall (0.429). Every flagged case is correct, but most PCL examples in this category are missed, likely because immigrant-related PCL relies on subtle implication rather than direct lexical markers.
 
 % ============================================================
 \clearpage
 \section{Discussion and Conclusion}
 \label{sec:discussion}
 
-This report has described a complete pipeline for binary PCL detection on SemEval 2022 Task 4, Subtask 1. EDA revealed a severe 9.5:1 class imbalance and that PCL is characterised by subtle pragmatic signals rather than surface keywords alone, motivating the use of pre-trained transformers and a Weighted Random Sampler. We proposed and implemented a dual-backbone ensemble (RoBERTa-base + DistilBERT) trained with grouped LLRD, cosine annealing, metadata prepending, multi-seed training, and threshold tuning, achieving dev set F1 = 0.6069 ($+$0.1269 above the 0.48 official baseline).
+This report has described a pipeline for binary PCL detection on SemEval 2022 Task 4, Subtask 1. EDA revealed a 9.5:1 class imbalance and that PCL is characterised by pragmatic signals rather than surface keywords alone, motivating the use of pre-trained transformers and a Weighted Random Sampler. We proposed and implemented a dual-backbone ensemble (RoBERTa-base + DistilBERT) trained with grouped LLRD, cosine annealing, metadata prepending, multi-seed training, and threshold tuning, achieving dev set F1 = 0.6069 ($+$0.1269 above the 0.48 official baseline).
 
-The ablation study (Section~4.2) confirms that WRS is the most critical component for generalisation: removing it raises validation F1 through aggressive threshold tuning, but this does not transfer to unseen data. Classifier-head dropout is the most destructive hyperparameter in the grid search, and ensembling two architecturally distinct backbones provides a consistent gain over any individual checkpoint.
+The ablation study (Section~\ref{sec:ablation}) confirms that WRS is the most critical component for generalisation: removing it raises validation F1 through aggressive threshold tuning, but this does not transfer to unseen data. Classifier-head dropout is the most destructive hyperparameter in the grid search, and ensembling two architecturally distinct backbones provides a consistent gain over any individual checkpoint.
 
-The model still struggles with the most challenging PCL cases. False negatives are concentrated in indirect, politically framed, or presupposition-heavy examples that require pragmatic reasoning beyond surface token patterns (Section~4.3). Per-keyword performance correlates strongly with the PCL base rate, suggesting the model captures some keyword-specific patterns rather than a fully general notion of PCL.
+The model still struggles with indirect, politically framed, or presupposition-heavy PCL cases that require pragmatic reasoning beyond surface token patterns (Section~\ref{sec:errors}). Per-keyword performance correlates with the PCL base rate, suggesting the model captures some keyword-specific patterns rather than a general notion of PCL.
 
-With more time and compute, the most promising directions are: (1) \textbf{larger models} such as \texttt{deberta-v3-base}, which have shown state-of-the-art results on comparable tasks; (2) \textbf{data augmentation} via back-translation to increase positive training examples; (3) \textbf{multi-task learning} using the fine-grained Subtask 2 category labels as auxiliary supervision to sharpen the binary classifier.
+With more time and compute, the directions most likely to yield gains are: (1) \textbf{larger models} such as \texttt{deberta-v3-base}, which have shown strong results on comparable tasks; (2) \textbf{data augmentation} via back-translation to increase positive training examples; (3) \textbf{multi-task learning} using the Subtask 2 category labels as auxiliary supervision to sharpen the binary classifier.
 
 % ============================================================
 \clearpage
 \section*{References}
 
-\begin{enumerate}
+\begin{enumerate}[label={[\arabic*]}]
     \item Pérez-Almendros, C., Espinosa-Anke, L., \& Schockaert, S. (2020). \textit{Don't Patronize Me! An Annotated Dataset with Patronizing and Condescending Language towards Vulnerable Communities}. In \emph{Proceedings of COLING 2020}, pp.\ 5891--5902.
 
     \item Pérez-Almendros, C., Espinosa-Anke, L., \& Schockaert, S. (2022). \textit{SemEval-2022 Task 4: Patronizing and Condescending Language Detection}. In \emph{Proceedings of SemEval 2022}, pp.\ 1--11.
