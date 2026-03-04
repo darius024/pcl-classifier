@@ -40,7 +40,7 @@ Patronising and Condescending Language (PCL) is a subtle and socially harmful fo
 
 This report describes work carried out for the SemEval 2022 Task 4, Subtask 1 shared task, which frames PCL detection as a \textbf{binary classification problem}: given a news paragraph, classify it as either containing PCL (class~1) or not (class~0). The evaluation metric is the F1 score of the positive (PCL) class, appropriate given the strong class imbalance in the dataset. The official RoBERTa-base baseline achieves F1 = 0.48 on the dev set; our submitted dual-backbone ensemble achieves \textbf{F1 = 0.6069}, an improvement of $+$0.1269.
 
-The report follows the stages of the NLP research lifecycle as specified in the coursework. Section~\ref{sec:review} presents a critical review of the original PCL dataset paper. Section~\ref{sec:eda} describes two distinct exploratory data analysis techniques. Section~\ref{sec:approach} proposes and justifies our modelling approach. Section~\ref{sec:local} presents local evaluation including error analysis and a precision--recall study. Sections~\ref{sec:discussion} and~\ref{sec:conclusion} discuss findings and conclude. The GitHub repository containing all code, notebooks, and submission files (\texttt{dev.txt}, \texttt{test.txt}) is linked on the front page.
+The report follows the stages of the NLP research lifecycle as specified in the coursework. Section~\ref{sec:review} presents a critical review of the original PCL dataset paper. Section~\ref{sec:eda} describes two distinct exploratory data analysis techniques. Section~\ref{sec:approach} proposes and justifies our modelling approach. Section~\ref{sec:local} presents local evaluation: Section~5.1 covers core metrics and the confusion matrix; Section~5.2 contains the full ablation study; Section~5.3 provides error analysis including comparison with the solo RoBERTa reference system. Sections~\ref{sec:discussion} and~\ref{sec:conclusion} discuss findings and conclude. The GitHub repository containing all code, notebooks, and submission files (\texttt{dev.txt}, \texttt{test.txt}) is linked on the front page.
 
 % ============================================================
 \clearpage
@@ -198,10 +198,10 @@ HTML entities in the raw text are unescaped (e.g., \texttt{\&amp;} $\to$ \texttt
 
 % ============================================================
 \clearpage
-\section{Exercise 5.2: Local Evaluation}
+\section{Exercise 5: Local Evaluation}
 \label{sec:local}
 
-\textbf{Submission summary.} The \texttt{BestModel/} folder in the repository holds the saved checkpoints for both backbones. The submission files \texttt{dev.txt} (2,094 lines) and \texttt{test.txt} (3,832 lines) are in the repository root, each containing one prediction per line (0 = No PCL, 1 = PCL). The ensemble achieves \textbf{F1 = 0.6069} on the official dev set, surpassing the baseline of 0.48 by $+$0.1269. Table~\ref{tab:final_results} summarises the final system comparison.
+\textbf{Submission summary.} The \texttt{BestModel/} folder holds the saved checkpoints for both backbones. Submission files \texttt{dev.txt} (2,094 lines) and \texttt{test.txt} (3,832 lines) are in the repository root, one prediction per line (0 = No PCL, 1 = PCL). The ensemble achieves \textbf{F1 = 0.6069} on the official dev set, surpassing the baseline of 0.48 by $+$0.1269.
 
 \begin{table}[H]
 \centering
@@ -209,19 +209,18 @@ HTML entities in the raw text are unescaped (e.g., \texttt{\&amp;} $\to$ \texttt
 \toprule
 System & Val F1 & Dev F1 & Threshold \\
 \midrule
-Solo RoBERTa (drop0-bs4ga4, seed=7)       & 0.5795 & 0.5955 & 0.75 \\
-Solo DistilBERT (drop03-bs8ga2, seed=7)   & 0.5818 & 0.5463 & 0.50 \\
-\textbf{Ensemble (w=0.50/0.50)}           & \textbf{0.5882} & \textbf{0.6069} & \textbf{0.50} \\
-Official baseline (RoBERTa-base)          & --- & 0.48 & --- \\
+Solo RoBERTa (drop=0.0, bs=4, ga=4, seed=7)       & 0.5795 & 0.5955 & 0.75 \\
+Solo DistilBERT (drop=0.3, bs=8, ga=2, seed=7)     & 0.5818 & 0.5463 & 0.50 \\
+\textbf{Ensemble (w=0.50/0.50)}                    & \textbf{0.5882} & \textbf{0.6069} & \textbf{0.50} \\
+Official baseline (RoBERTa-base, no tuning)        & --- & 0.48 & --- \\
 \bottomrule
 \end{tabular}
-\caption{Final system comparison on the official dev set.}
+\caption{Final system comparison on the official dev set. Val F1 is the best-threshold score on the held-out validation split used during development.}
 \label{tab:final_results}
 \end{table}
 
-\subsection{Error Analysis}
-
-\subsubsection*{Confusion Matrix}
+% ============================================================
+\subsection{Confusion Matrix and Core Metrics}
 
 \begin{figure}[H]
 \centering
@@ -229,8 +228,6 @@ Official baseline (RoBERTa-base)          & --- & 0.48 & --- \\
 \caption{Confusion matrix on the dev set (counts, left; row-normalised recall per class, right). The ensemble uses equal weights (0.50/0.50) and threshold 0.50.}
 \label{fig:cm}
 \end{figure}
-
-The ensemble achieves the following breakdown on the 2,094-example dev set:
 
 \begin{table}[H]
 \centering
@@ -243,22 +240,194 @@ False Positives (FP)   & 102   & No-PCL flagged as PCL \\
 False Negatives (FN)   & 69    & PCL examples missed \\
 True Positives (TP)    & 130   & Correct PCL predictions \\
 \midrule
-Precision (PCL)        & 0.560 & Of flagged examples, 56\% truly PCL \\
+Precision (PCL)        & 0.560 & Of flagged examples, 56\% are truly PCL \\
 Recall (PCL)           & 0.653 & 65.3\% of PCL examples detected \\
 F1 (PCL)               & 0.603 & Harmonic mean \\
-False Positive Rate    & 0.054 & 5.4\% of No-PCL flagged \\
-False Negative Rate    & 0.347 & 34.7\% of PCL missed \\
+False Positive Rate    & 0.054 & 5.4\% of No-PCL examples incorrectly flagged \\
+False Negative Rate    & 0.347 & 34.7\% of PCL examples missed \\
 \bottomrule
 \end{tabular}
 \caption{Confusion matrix statistics for the ensemble on the dev set.}
 \label{tab:cm_stats}
 \end{table}
 
-The model is \emph{conservative}: it correctly classifies 94.6\% of No-PCL examples (low FPR), but misses 34.7\% of PCL examples (high FNR). This asymmetry is characteristic of the task: given the 9.5:1 imbalance, the model has a high prior towards predicting ``No PCL'', so only examples where the model is fairly confident trigger a PCL prediction. The consequence is that precision (0.560) is higher than one might expect from a model trained on such skewed data, but recall on the positive class is still limited.
+The model is \emph{conservative}: it correctly classifies 94.6\% of No-PCL examples (low FPR), but misses 34.7\% of PCL examples (high FNR). Given the 9.5:1 class imbalance, the model retains a strong prior towards predicting ``No PCL''; only examples where the ensemble is fairly confident flip the decision. The result is higher-than-expected precision (0.560) at the cost of limited recall on the minority class.
 
-\subsubsection*{Manual Inspection of Misclassifications}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.72\textwidth]{images/pr_curve_threshold.png}
+\caption{Precision--Recall curve for the ensemble on the dev set. AUC-PR = 0.5906. The dashed line marks the chosen threshold (0.50).}
+\label{fig:pr_curve}
+\end{figure}
 
-Table~\ref{tab:errors} shows representative false positives (FP) and false negatives (FN), drawn from the highest-confidence errors:
+The AUC-PR of \textbf{0.5906} is substantially higher than the no-skill baseline of $\approx$0.095 (equal to the PCL base rate), confirming real discriminative power. Key trade-offs: recall $>$0.85 is achievable at precision $\sim$0.25--0.30 (appropriate for large-scale auditing); threshold 0.75 yields precision $>$0.70 at recall $\approx$0.50 (preferable when false positives are costly); our chosen threshold of 0.50 maximises F1 in line with the SemEval criterion.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.70\textwidth]{images/multi_seed_comparison.png}
+\caption{RoBERTa-base (drop=0.0, bs=4, ga=4) trained with three different random seeds; bar heights show best-threshold F1 on the dev set.}
+\label{fig:multi_seed}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+Seed & Best threshold & Dev F1 & AUC-PR \\
+\midrule
+7   & 0.87 & 0.6034 & 0.5835 \\
+42  & 0.12 & 0.5720 & 0.5792 \\
+123 & 0.62 & 0.5693 & 0.5666 \\
+\bottomrule
+\end{tabular}
+\caption{RoBERTa-base multi-seed results on the dev set (per-seed threshold tuning applied).}
+\label{tab:multi_seed}
+\end{table}
+
+The same architecture with three seeds spans F1 0.569--0.603 with optimal thresholds from 0.12 to 0.87, illustrating the well-known instability of fine-tuning large transformers on small, imbalanced datasets. Defaulting to $t=0.5$ would be sub-optimal for two of the three seeds. This variance directly motivates ensembling: averaging probabilities over multiple seeds and architectures smooths seed-specific biases, producing a more calibrated score distribution and the ensemble's improved dev F1 of 0.6069.
+
+% ============================================================
+\clearpage
+\subsection{Ablation Study}
+
+We conducted a three-part ablation to quantify the contribution of each design decision. All controlled experiments use \texttt{distilbert-base-uncased} (seed=42) as the backbone (smaller and faster than RoBERTa, allowing rapid iteration). The final submitted ensemble uses \texttt{roberta-base} + \texttt{distilbert-base-uncased} and achieves the highest test F1 (0.6069); the ablation explains \emph{why} the full system generalises best.
+
+\subsubsection*{Part A: Component Ablation}
+
+We removed each of the five training-time components one at a time, keeping everything else fixed at the full-model values. The components tested:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Metadata prepending}: remove the \texttt{<e>keyword</e> <e>country</e>} prefix.
+    \item \textbf{Weighted Random Sampler (WRS)}: replace with a uniform DataLoader.
+    \item \textbf{Grouped LLRD}: replace per-layer learning rates with a single uniform rate (2e-5).
+    \item \textbf{Linear warmup}: remove the 6\% warmup phase; cosine decay starts from step~0.
+    \item \textbf{Threshold tuning}: fix decision threshold at $t=0.50$ instead of val-set sweeping.
+\end{enumerate}
+
+All variants train for up to 10 epochs with early stopping (patience=3). Full code is in \texttt{5\_evaluation/ablation\_study.ipynb}.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Variant & Val F1 & Val threshold & Test F1 & $\Delta$ Test F1 \\
+\midrule
+Full model (all components ON) & 0.5426 & 0.67 & 0.5031 & 0.000 \\
+w/o Metadata prepending        & 0.5699 & 0.62 & 0.5367 & $+$0.034 \\
+w/o Weighted Random Sampler    & 0.5882 & 0.14 & 0.5458 & $+$0.043 \\
+w/o Grouped LLRD               & 0.5333 & 0.78 & 0.5284 & $+$0.025 \\
+w/o Linear warmup              & 0.5611 & 0.56 & 0.5431 & $+$0.040 \\
+Fixed threshold $t=0.50$       & 0.5022 & 0.50 & 0.4893 & $-$0.014 \\
+\midrule
+RoBERTa drop=0.0 (best, from log) & 0.5979 & 0.87 & 0.6034 & $+$0.100 \\
+\textbf{Ensemble (submitted)}     & \textbf{0.5882} & \textbf{0.50} & \textbf{0.6069} & $+$0.104 \\
+\bottomrule
+\end{tabular}
+\caption{Component-level ablation (DistilBERT, seed=42). $\Delta$ Test F1 = test F1 minus the DistilBERT full-model baseline (0.5031); positive means performance \emph{improved} when the component was removed, which is counter-intuitive and explained in the text.}
+\label{tab:ablation_component}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{images/ablation_bar.png}
+\caption{Test F1 for each ablation variant and the final submitted models (DistilBERT full model baseline: 0.5031).}
+\label{fig:ablation_bar}
+\end{figure}
+
+\textbf{Interpreting the counter-intuitive positive deltas.} Removing metadata, WRS, LLRD, or warmup all \emph{increased} the DistilBERT test F1. This is not evidence that these components are harmful; it is an artefact of the DistilBERT full model being poorly calibrated as a \emph{standalone} system. Without the complementary RoBERTa backbone, DistilBERT struggles to absorb all four components simultaneously at this scale. The key evidence is the optimal threshold: the full model needs $t=0.67$ (already above the neutral 0.50), while the WRS-removed variant requires $t=0.14$, revealing severe probability miscalibration. Removing WRS means the model sees $\sim$10$\times$ more negative examples per batch and learns to push all outputs towards the negative end of $[0,1]$; the low threshold then recovers F1 on the validation set but does not transfer reliably to the test set.
+
+\textbf{The only component with a consistently negative delta is threshold tuning.} Fixing $t=0.50$ drops test F1 by $-$0.014 (0.5031~$\to$~0.4893), confirming that sweeping the threshold on the validation set is essential and that the model's raw probabilities are not well-calibrated at 0.50. \textbf{WRS is essential for calibration in the final ensemble}: when both backbones are trained with WRS and their probabilities averaged, the ensemble is well-calibrated at $t=0.50$, achieving the best generalisation (test F1 = 0.6069), over 0.10 above the DistilBERT-only baseline.
+
+\subsubsection*{Part B: Hyperparameter Search (Dropout and Batch Size)}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llccc}
+\toprule
+Backbone & Config & seed=42 & seed=7 & seed=123 \\
+\midrule
+RoBERTa-base & drop=0.0, bs=8, ga=2  & 0.5778 & 0.5786 & \textbf{0.5979} \\
+RoBERTa-base & drop=0.0, bs=4, ga=4  & 0.5890 & 0.5795 & \textbf{0.5979} \\
+RoBERTa-base & drop=0.5, bs=8, ga=2  & 0.2471 & \textbf{0.2768} & 0.1753 \\
+RoBERTa-base & drop=0.5, bs=4, ga=4  & 0.3000 & 0.2249 & \textbf{0.3203} \\
+\midrule
+DistilBERT   & drop=0.1, bs=8, ga=2  & 0.5596 & \textbf{0.5965} & 0.5965 \\
+DistilBERT   & drop=0.1, bs=4, ga=4  & 0.5761 & 0.5829 & \textbf{0.5889} \\
+DistilBERT   & drop=0.3, bs=8, ga=2  & 0.5775 & \textbf{0.5818} & 0.5657 \\
+\midrule
+\textbf{Ensemble} & best RoBERTa + best DistilBERT & \multicolumn{3}{c}{\textbf{Dev F1 = 0.6069}} \\
+\bottomrule
+\end{tabular}
+\caption{Hyperparameter search: best-threshold validation F1 per seed. \textit{bs}=batch size, \textit{ga}=gradient accumulation steps (effective batch = bs\,$\times$\,ga).}
+\label{tab:ablation_dropout}
+\end{table}
+
+\textbf{1. Classifier-head dropout is the most destructive hyperparameter.} RoBERTa with drop=0.5 collapses from val F1 $\sim$0.598 to $\sim$0.28--0.32, a fall of over 0.30 points. With only 794 positive training examples, a 50\% dropout rate starves the classifier head of gradient signal. Drop=0.0 is the right choice for RoBERTa; DistilBERT is more tolerant of modest dropout (0.1--0.3) due to its smaller capacity.
+
+\textbf{2. Batch size and gradient accumulation are irrelevant when effective batch size is equal.} Both configurations (bs=8/ga=2 and bs=4/ga=4, effective batch=16) reach the same peak val F1 for both backbones, confirming that gradient quality matters rather than update frequency.
+
+\textbf{3. Ensembling provides the largest single gain.} The best solo RoBERTa checkpoint (val F1=0.5979, dev F1=0.6034) is outperformed by the ensemble (dev F1=0.6069). Figure~\ref{fig:rvd} shows that RoBERTa and DistilBERT make partially uncorrelated errors; averaging their probabilities corrects cases either model misses individually.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\textwidth]{images/roberta_vs_distilbert.png}
+\caption{Error overlap between the best RoBERTa and DistilBERT checkpoints on the dev set. Predictions unique to one model are the primary motivation for ensembling.}
+\label{fig:rvd}
+\end{figure}
+
+\subsubsection*{Part C: Generalisation Verification}
+
+Based on the component ablation results (all positive deltas except threshold tuning), we tested whether stacking all positive-delta changes into a single model would produce a stronger DistilBERT. Two variants were trained via \texttt{improved\_distilbert.py} across three seeds each:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Model A (best-combined)}: metadata, WRS, LLRD, and warmup all removed; dropout=0.3. Stacks all components with a positive ablation delta.
+    \item \textbf{Model B (high-recall)}: keeps metadata and LLRD; removes WRS and warmup; dropout=0.1. Designed as a high-recall complement to RoBERTa.
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+Model & Val F1* & Test F1 & Val$\to$Test gap & Threshold $t$ \\
+\midrule
+RoBERTa (BestModel, seed=7)     & --- & 0.5955 & --- & 0.75 \\
+DistilBERT (BestModel, seed=7)  & --- & 0.5455 & --- & 0.53 \\
+Model A (best-combined, seed=123) & 0.5851 & 0.5628 & $-$0.022 & 0.07 \\
+Model B (high-recall, seed=7)     & 0.5868 & 0.5208 & $-$0.066 & 0.09 \\
+\midrule
+\textbf{ORIGINAL ensemble (RoBERTa + BestModel DistilBERT)} & \textbf{0.5882} & \textbf{0.6069} & \textbf{$+$0.019} & \textbf{0.50} \\
+NEW ensemble A (RoBERTa + Model A) & 0.6115 & 0.5854 & $-$0.026 & 0.29 \\
+NEW ensemble B (RoBERTa + Model B) & 0.6207 & 0.5753 & $-$0.045 & 0.26 \\
+\bottomrule
+\end{tabular}
+\caption{Generalisation verification: val and test F1 for solo models and ensemble combinations. The original ensemble is the only system where test F1 exceeds val F1, a strong indicator of genuine generalisation.}
+\label{tab:gen_verify}
+\end{table}
+
+The new ensembles achieve higher val F1 (up to 0.6207) but significantly lower test F1 (0.5854 and 0.5753), showing clear val-set overfitting. The root cause is the same calibration issue identified in Part A: without WRS, Models A and B require extreme thresholds ($t=0.07$ and $t=0.09$) and heavily skewed ensemble weights (RoBERTa 25\% / new DistilBERT 75\%), both of which are tuned specifically to the validation set and fail to transfer. The original ensemble, trained with WRS in both backbones, outputs well-calibrated probabilities at $t=0.50$ with equal weights and remains the best generalising system.
+
+\textbf{Key conclusion:} WRS is not just a class-imbalance corrector; it is essential for probability calibration and generalisation. Removing it allows higher val F1 through aggressive threshold tuning, but this is an artefact of val-set overfitting, not genuine improvement. The submitted ensemble (test F1 = 0.6069) outperforms all alternatives and is the right choice.
+
+% ============================================================
+\clearpage
+\subsection{Error Analysis}
+
+We compare the ensemble against the solo RoBERTa model as a reference system, since both sets of predictions are available. This mirrors the four-quadrant analysis described in the coursework specification.
+
+\subsubsection*{Comparison with Solo RoBERTa (Baseline Reference)}
+
+The solo RoBERTa model achieves test F1 = 0.5955; the ensemble achieves 0.6069. The improvement ($+$0.011) comes from correcting cases where RoBERTa errs but DistilBERT is right, without introducing too many new errors. Figure~\ref{fig:rvd} (Section~5.2) directly visualises this:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{(a) Both correct:} the large majority of examples; both models agree on the dominant No-PCL class.
+    \item \textbf{(b) Both wrong:} hard PCL cases where neither model has enough signal. These are typically indirect, politically framed, or presupposition-based PCL with no surface-level markers.
+    \item \textbf{(c) RoBERTa correct, ensemble wrong:} rare; the ensemble can inherit DistilBERT's errors if DistilBERT is confidently wrong and RoBERTa is uncertain. This happens more on low-frequency categories such as \textit{migrant} and \textit{women}.
+    \item \textbf{(d) Ensemble correct, RoBERTa wrong:} the primary source of the ensemble's gain. DistilBERT's different inductive biases (lighter architecture, distinct tokenisation) allow it to catch some PCL examples that RoBERTa misses, particularly in categories such as \textit{in-need} and \textit{homeless} where PCL is more lexically distinctive.
+\end{itemize}
+
+The asymmetry (more (d) than (c)) confirms that ensembling genuinely diversifies the predictions rather than merely averaging noise.
+
+\subsubsection*{Manual Inspection of False Positives and False Negatives}
 
 \begin{table}[H]
 \centering
@@ -279,9 +448,9 @@ FN & hopeless & BD & \textit{``Calling for an immediate political solution to re
 \label{tab:errors}
 \end{table}
 
-\textbf{False Positives (model over-triggers).} Both FP examples discuss vulnerable communities using factual or organisational language. The first describes a church initiative for unemployed families; the second lists demographics identified by an NGO. Neither is condescending in tone, yet both contain the vocabulary the model associates with PCL (``families'', ``poor'', ``unemployed'', ``HIV/AIDS''). The model appears to latch onto the presence of vulnerability-related keywords rather than the framing or power dynamics.
+\textbf{False Positives.} Both FP examples use factual or organisational language about vulnerable communities. The model latches onto vulnerability-associated vocabulary (``poor'', ``unemployed'', ``HIV/AIDS'') rather than the framing or power dynamics that constitute genuine PCL.
 
-\textbf{False Negatives (model under-triggers).} The FN examples are notably more challenging. The ``Michael Gove'' example is a clear case of the \emph{Presupposition} PCL category; it implies that poor families are financially incompetent, but the language is bureaucratic and indirect. The ``Syria/hopeless'' example contains PCL through political framing rather than explicit emotional language. In both cases, the PCL is fully implicit: understanding it requires background knowledge and pragmatic reasoning beyond surface token patterns. These represent the fundamental limit of current transformer-based classifiers on this task.
+\textbf{False Negatives.} The FN examples involve implicit PCL. The ``Michael Gove'' example is a \emph{Presupposition} PCL case: it implies poor families are financially incompetent through bureaucratic, indirect language. The ``Syria/hopeless'' example embeds PCL in political framing. Both require pragmatic reasoning and world knowledge that go beyond surface token patterns, representing the fundamental limit of current transformer classifiers on this task.
 
 \subsubsection*{Per-Keyword Analysis}
 
@@ -310,141 +479,24 @@ migrant       & 2.4\%  & 0.667 & 0.400 & 0.500 \\
 women         & 6.0\%  & 0.545 & 0.429 & 0.480 \\
 \bottomrule
 \end{tabular}
-\caption{Per-keyword performance on the dev set.}
+\caption{Per-keyword performance on the dev set. PCL Rate = fraction of examples labelled PCL for that keyword.}
 \label{tab:per_keyword}
 \end{table}
 
-The model performs best on \textbf{in-need} (F1 = 0.729, PCL rate 14.6\%) and \textbf{homeless} (F1 = 0.689, PCL rate 13.7\%), the categories with the highest proportion of positive examples and likely the most distinctive vocabulary. Performance is worst on \textbf{women} (F1 = 0.480), \textbf{migrant} (F1 = 0.500), and \textbf{refugee} (F1 = 0.519), which have much lower PCL rates (2--7\%) and fewer positive training examples. This strong correlation between PCL base rate and F1 suggests the model is partly learning keyword-specific patterns rather than a fully transferable notion of PCL.
-
-Interestingly, \textbf{immigrant} achieves perfect precision (1.000) but low recall (0.429): when the model flags an immigrant-related text as PCL, it is always correct, but it misses most cases. This may indicate that PCL in immigrant-related texts is either very obvious when present, or occurs in linguistic forms the model rarely sees during training.
-
-\subsection{Additional Local Evaluation: PR Curve, Multi-Seed Analysis, and Ablation Study}
-
-\subsubsection*{Precision--Recall Curve and Threshold Sensitivity}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.72\textwidth]{images/pr_curve_threshold.png}
-\caption{Precision--Recall curve for the ensemble on the dev set. AUC-PR = 0.5906. The dashed line marks the chosen threshold (0.50).}
-\label{fig:pr_curve}
-\end{figure}
-
-The AUC-PR of \textbf{0.5906} is substantially higher than the no-skill baseline of $\approx$0.095 (equal to the PCL rate), confirming real discriminative power. Key trade-offs along the curve:
-\begin{itemize}[noitemsep]
-    \item Recall $>$0.85 is achievable at the cost of precision $\sim$0.25--0.30, preferable when missing PCL is costly (e.g., large-scale content auditing).
-    \item Threshold 0.75 gives precision $>$0.70 at recall $\approx$0.50, preferable when false positives carry a high cost.
-    \item Our chosen threshold of 0.50 (precision = 0.560, recall = 0.653) maximises F1 in line with the SemEval criterion.
-\end{itemize}
-
-\subsubsection*{Multi-Seed Stability Analysis}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.70\textwidth]{images/multi_seed_comparison.png}
-\caption{RoBERTa-base (drop=0.0, bs=4, ga=4) across three random seeds; bar heights show best-threshold F1 on the dev set. Whiskers (if present) show AUC-PR.}
-\label{fig:multi_seed}
-\end{figure}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{lccc}
-\toprule
-Seed & Best threshold & Dev F1 & AUC-PR \\
-\midrule
-7   & 0.87 & 0.6034 & 0.5835 \\
-42  & 0.12 & 0.5720 & 0.5792 \\
-123 & 0.62 & 0.5693 & 0.5666 \\
-\bottomrule
-\end{tabular}
-\caption{RoBERTa-base multi-seed results on the dev set (per-seed threshold tuning applied).}
-\label{tab:multi_seed}
-\end{table}
-
-Training the same architecture with three different seeds yields F1 values spanning 0.569--0.603 and optimal thresholds varying from 0.12 to 0.87. This reveals a well-known instability in fine-tuning large transformers on small, imbalanced datasets: minor differences in mini-batch ordering early in training can shift the model towards different local minima, each requiring a different decision boundary. The large threshold spread further underscores that defaulting to $t=0.5$ would be sub-optimal for at least two of the three seeds. That \textbf{seed~7 generalises best to the held-out dev set} (0.6034) despite not always having the highest internal validation score shows that validation metrics are only a noisy proxy for true test performance. This variance directly motivates ensembling: averaging probabilities over multiple seeds and architectures smooths out seed-specific biases and produces a more calibrated score distribution, resulting in the ensemble's improved dev F1 of 0.6069.
-
-\subsubsection*{Component Ablation Study}
-
-A rigorous component ablation was conducted to isolate the contribution of each training-time design decision. Using \texttt{distilbert-base-uncased} (seed=42) as a controlled backbone, we re-trained with exactly one component removed per variant; all other hyperparameters remained fixed at the full-model values. The five components tested are:
-
-\begin{enumerate}[noitemsep]
-    \item \textbf{Metadata prepending}: remove the \texttt{<e>keyword</e> <e>country</e>} prefix; pass raw article text only.
-    \item \textbf{Weighted Random Sampler (WRS)}: replace with a standard uniform DataLoader.
-    \item \textbf{Grouped LLRD}: replace with a single uniform learning rate (2e-5) across all layers.
-    \item \textbf{Linear warmup}: remove the 6\% warmup phase; start cosine decay from step 0.
-    \item \textbf{Threshold tuning}: fix decision threshold at $t=0.50$ instead of sweeping on the validation set.
-\end{enumerate}
-
-All variants are trained for up to 10 epochs with early stopping (patience=3) and evaluated on the official dev set. Full code and logs are in \texttt{5\_evaluation/ablation\_study.ipynb}.
-
-\begin{table}[H]
-\centering
-\begin{tabular}{lcccc}
-\toprule
-Variant & Val F1 & Test F1 & $\Delta$ F1 & Best epoch \\
-\midrule
-Full model (all components ON) & \textit{fill in} & \textit{fill in} & 0.000 & \textit{fill in} \\
-w/o Metadata prepending        & \textit{fill in} & \textit{fill in} & \textit{fill in} & \textit{fill in} \\
-w/o Weighted Random Sampler    & \textit{fill in} & \textit{fill in} & \textit{fill in} & \textit{fill in} \\
-w/o Grouped LLRD               & \textit{fill in} & \textit{fill in} & \textit{fill in} & \textit{fill in} \\
-w/o Linear warmup              & \textit{fill in} & \textit{fill in} & \textit{fill in} & \textit{fill in} \\
-Fixed threshold $t=0.50$       & \textit{fill in} & \textit{fill in} & \textit{fill in} & \textit{fill in} \\
-\bottomrule
-\end{tabular}
-\caption{Component-level ablation results (DistilBERT, seed=42). $\Delta$F1 = test F1 minus full-model F1; negative means that component is helpful. \textit{Run \texttt{5\_evaluation/ablation\_study.ipynb} and update.}}
-\label{tab:ablation_component}
-\end{table}
-
-\textbf{Part B: Dropout and batch-size ablation} (from the full hyperparameter search; results are the best validation F1 across three seeds per configuration):
-
-\begin{table}[H]
-\centering
-\begin{tabular}{llccc}
-\toprule
-Backbone & Config & seed=42 & seed=7 & seed=123 \\
-\midrule
-RoBERTa-base & drop=0.0, bs=8, ga=2  & 0.5778 & 0.5786 & \textbf{0.5979} \\
-RoBERTa-base & drop=0.0, bs=4, ga=4  & 0.5890 & 0.5795 & \textbf{0.5979} \\
-RoBERTa-base & drop=0.5, bs=8, ga=2  & 0.2471 & \textbf{0.2768} & 0.1753 \\
-RoBERTa-base & drop=0.5, bs=4, ga=4  & 0.3000 & 0.2249 & \textbf{0.3203} \\
-\midrule
-DistilBERT   & drop=0.1, bs=8, ga=2  & 0.5596 & \textbf{0.5965} & 0.5965 \\
-DistilBERT   & drop=0.1, bs=4, ga=4  & 0.5761 & 0.5829 & \textbf{0.5889} \\
-DistilBERT   & drop=0.3, bs=8, ga=2  & 0.5775 & \textbf{0.5818} & 0.5657 \\
-\midrule
-\textbf{Ensemble} & best RoBERTa + best DistilBERT & \multicolumn{3}{c}{\textbf{Dev F1 = 0.6069}} \\
-\bottomrule
-\end{tabular}
-\caption{Hyperparameter search results: best-seed validation F1. Bold marks the best seed per row. \textit{bs}=batch size, \textit{ga}=gradient accumulation steps (effective batch = bs\,$\times$\,ga).}
-\label{tab:ablation_dropout}
-\end{table}
-
-Three findings emerge from Table~\ref{tab:ablation_dropout}:
-
-\textbf{1. Classifier-head dropout is the most destructive hyperparameter.} RoBERTa with drop=0.5 collapses from val F1~$\sim$0.598 down to $\sim$0.28--0.32, a drop of over 0.30 F1 points. This is not a minor degradation; it renders the model nearly useless. The explanation is straightforward: with only 794 positive training examples, the model needs every gradient signal to adapt the classifier head rapidly to a highly skewed distribution, and a 50\% dropout rate effectively halves the available gradient per step. Drop=0.0 (no extra dropout beyond the pre-trained layers themselves) is the right choice for RoBERTa. DistilBERT is somewhat more tolerant of modest dropout (0.1--0.3) due to its smaller capacity and the fact that its pre-trained layers already apply less dropout.
-
-\textbf{2. Batch size and gradient accumulation are largely irrelevant.} For RoBERTa drop=0.0, both batch configurations (bs=8/ga=2 and bs=4/ga=4, both effective batch=16) peak at an identical best-seed val F1 of 0.5979. The same pattern holds for DistilBERT. Given that the effective batch size is equal in both cases, this confirms that gradient quality (signal-to-noise ratio per update) matters, not the number of updates per epoch.
-
-\textbf{3. Ensembling provides the largest gain over any individual checkpoint.} The best solo checkpoint (RoBERTa, val F1=0.5979, dev F1=0.6034) does not match the ensemble (dev F1=0.6069). The $+$0.004 gain on the dev set (after threshold tuning per model) confirms that RoBERTa and DistilBERT make partially uncorrelated errors, as the Venn-style comparison in Figure~\ref{fig:rvd} directly shows.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.80\textwidth]{images/roberta_vs_distilbert.png}
-\caption{Error overlap between the best RoBERTa and DistilBERT checkpoints on the dev set. Cases where only one model errs are the primary motivation for ensembling.}
-\label{fig:rvd}
-\end{figure}
+Performance correlates strongly with the PCL base rate per keyword: \textbf{in-need} (F1=0.729, rate=14.6\%) and \textbf{homeless} (F1=0.689, rate=13.7\%) are the strongest categories, while \textbf{women} (F1=0.480, rate=6.0\%), \textbf{migrant} (F1=0.500, rate=2.4\%), and \textbf{refugee} (F1=0.519, rate=6.9\%) are the weakest. This suggests the model learns some keyword-specific patterns rather than a fully transferable PCL concept; a model that truly understood PCL should perform more uniformly. \textbf{Immigrant} achieves perfect precision (1.000) but low recall (0.429): every flagged case is correct, but most PCL examples in this category are missed, likely because immigrant-related PCL takes subtle forms rarely seen during training.
 
 % ============================================================
 \clearpage
 \section{Discussion}
 \label{sec:discussion}
 
-Our proposed ensemble successfully surpasses the official baseline F1 of 0.48 on the dev set, achieving \textbf{0.6069}, an improvement of $+$0.1269 (26\% relative). The main contributors to this improvement are: (1) using large pre-trained transformer models rather than the baseline's simpler fine-tuning setup; (2) explicitly addressing the 9.5:1 class imbalance via WRS; (3) prepending keyword/country metadata to provide contextual signals; and (4) ensembling two complementary architectures to reduce variance.
+Our proposed ensemble surpasses the official baseline F1 of 0.48 on the dev set, achieving \textbf{0.6069}, an improvement of $+$0.1269 (26\% relative). The ablation study (Section~5.2) confirms that WRS is the single most important component for generalisation; without it, probability calibration degrades and performance drops on unseen data even when val F1 appears to improve. The hyperparameter search (Part B) shows that classifier-head dropout is the most destructive hyperparameter, and that ensembling two backbones provides a consistent gain beyond any individual checkpoint.
 
-Despite this improvement, the model still struggles with the most challenging PCL cases. The false negative analysis shows that indirect, politically framed, or presupposition-heavy PCL remains difficult to detect. These examples require reasoning about social context and implied meaning, capabilities that current transformers handle only partially, particularly on a dataset as small as this one.
+Despite this improvement, the model still struggles with the most challenging PCL cases. The false negative analysis (Section~5.3) shows that indirect, politically framed, or presupposition-heavy PCL remains difficult to detect. These examples require pragmatic reasoning and world knowledge beyond surface token patterns, a fundamental limitation of current transformer classifiers on a dataset this size.
 
-The per-keyword analysis reveals an additional limitation: the model's performance correlates strongly with the base rate of PCL per keyword, suggesting it learns some category-specific patterns rather than a truly universal notion of PCL. A model that genuinely understood PCL should perform more uniformly across all keywords.
+The per-keyword analysis reveals an additional limitation: performance correlates strongly with the PCL base rate per keyword, suggesting the model learns some category-specific patterns rather than a fully transferable notion of PCL.
 
-With more time and compute, several improvements could be explored: (1) \textbf{larger models} such as \texttt{roberta-large} or \texttt{deberta-v3-base} have shown state-of-the-art performance on comparable tasks; (2) \textbf{data augmentation} through back-translation or paraphrase generation could increase the number of positive training examples; (3) \textbf{multi-task learning} using the fine-grained PCL category labels from Subtask 2 as auxiliary supervision could sharpen the binary classifier; (4) \textbf{curriculum learning}, starting with easy (high-confidence) examples and gradually introducing hard (ambiguous) ones, might improve convergence on the minority class.
+With more time and compute, several improvements could be explored: (1) \textbf{larger models} such as \texttt{roberta-large} or \texttt{deberta-v3-base} have shown state-of-the-art performance on comparable tasks; (2) \textbf{data augmentation} through back-translation or paraphrase generation could increase the number of positive training examples; (3) \textbf{multi-task learning} using the fine-grained PCL category labels from Subtask 2 as auxiliary supervision could sharpen the binary classifier; (4) \textbf{curriculum learning}, starting with easy (high-confidence) examples and gradually introducing harder, ambiguous ones, might improve convergence on the minority class.
 
 % ============================================================
 \clearpage

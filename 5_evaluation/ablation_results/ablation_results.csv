@@ -1,0 +1,10 @@
+variant,val_f1,val_threshold,test_f1,test_precision,test_recall,best_epoch,delta_f1
+Full model,0.5426,0.67,0.5031,0.4266,0.6131,1,0.0
+w/o Metadata,0.5699,0.62,0.5367,0.4604,0.6432,1,0.0336
+w/o WRS,0.5882,0.14,0.5458,0.4459,0.7035,3,0.0427
+w/o LLRD,0.5333,0.78,0.5284,0.4672,0.608,2,0.0253
+w/o Warmup,0.5611,0.56,0.5431,0.4277,0.7437,1,0.04
+Fixed t=0.50,0.5022,0.5,0.4893,0.3634,0.7487,1,-0.0138
+"RoBERTa drop=0.0 (best, from log)",0.5979,0.87,0.6034,,,,0.1003
+RoBERTa drop=0.5 (from log),0.2768,,,,,,
+Ensemble RoBERTa+DistilBERT (submitted),0.5882,0.5,0.6069,0.56,0.653,,0.1038
