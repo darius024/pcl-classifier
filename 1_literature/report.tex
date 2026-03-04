@@ -150,6 +150,16 @@ These findings motivate two decisions we apply throughout the pipeline:
 
 Our proposed system is a \textbf{dual-backbone ensemble} of \texttt{roberta-base} and \texttt{distilbert-base-\allowbreak{}uncased}, designed to address the key challenges from EDA: a 9.5:1 class imbalance, subtle pragmatic signals, and limited labelled positives.
 
+\subsubsection*{Data Splits and Evaluation Protocol}
+
+The official splits are used as follows:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Official train (8,375 examples):} split into an internal train set (90\%) and an internal validation set (10\%), both stratified by label. The validation set is used for early stopping, checkpoint selection, and threshold/weight tuning.
+    \item \textbf{Official dev (2,094 examples):} treated as a held-out test set throughout development, since the official test set carries no labels. This allows us to measure generalisation on truly unseen data without leaking information into training decisions.
+    \item \textbf{Official test (3,832 examples):} unlabelled; used only to generate the leaderboard submission files \texttt{dev.txt} and \texttt{test.txt}.
+\end{itemize}
+
 \subsubsection*{Input Representation}
 
 Each input to both models is formatted as:
@@ -164,23 +174,25 @@ Each input to both models is formatted as:
 
 \subsubsection*{Training Procedure}
 
-A stratified 10\% hold-out of the official training set is reserved as an internal validation split for early stopping and threshold selection. Both backbones are then trained independently for up to 10 epochs with:
+Each backbone is trained independently for up to 8 epochs. An independent hyperparameter search is conducted for each architecture to identify the best-performing configuration:
 
 \begin{itemize}[noitemsep]
-    \item \textbf{Weighted Random Sampler (WRS):} per-class inverse-frequency weights produce balanced mini-batches of PCL and No-PCL examples.
-    \item \textbf{Grouped layer-wise learning rate decay (LLRD):} lower transformer layers use $2 \times 10^{-5}$; upper layers and the classifier head receive a higher learning rate for task-specific adaptation.
-    \item \textbf{Cosine annealing with linear warmup:} the rate warms up linearly over the first $\sim$6\% of training steps, then decays following a cosine schedule.
-    \item \textbf{Early stopping:} training halts when validation F1 fails to improve for 3 consecutive epochs.
-    \item \textbf{Multi-seed selection:} each backbone is trained with seeds 42, 7, and 123; the checkpoint with the highest internal validation F1 is carried forward.
-    \item \textbf{Post-hoc threshold tuning:} the decision threshold is swept on the internal validation set; the value maximising F1 is selected.
+    \item \textbf{Weighted Random Sampler (WRS):} per-class weights use a square-root-scaled inverse-frequency formula rather than full inverse frequency, providing a softer correction. Ambiguous positives (annotator agreement score 2 out of 4) receive an additional 0.5$\times$ down-weight to reduce noise from borderline labels.
+    \item \textbf{Grouped layer-wise learning rate decay (LLRD):} transformer layers are divided into three groups; lower layers receive a smaller learning rate (base~$/ \lambda$) and upper layers a larger one (base~$\times \lambda$, with $\lambda = 1.6$). This preserves general pre-trained representations while allowing task-specific adaptation near the classifier head.
+    \item \textbf{Cosine annealing with linear warmup:} the rate warms up linearly over the first 10\% of total training steps, then follows a cosine decay. This prevents large early updates from destabilising pre-trained weights.
+    \item \textbf{Mid-training evaluation and checkpoint saving:} validation F1 is computed every 50 gradient update steps. Whenever a new best is reached, the model state is captured in memory. This fine-grained monitoring allows saving the best point within an epoch, not just at epoch boundaries.
+    \item \textbf{Early stopping:} training halts after 15 consecutive evaluation checks (750 gradient steps) without improvement in validation F1.
+    \item \textbf{Multi-seed selection:} each configuration is trained with three random seeds (42, 7, and 123). After all seeds complete, the checkpoint with the highest internal validation F1 is saved to disk. This reduces dependence on a single random initialisation.
 \end{itemize}
 
-\subsubsection*{Ensemble and Prediction}
+\subsubsection*{Ensemble Weight Search and Prediction}
+
+Once the best checkpoint for each backbone is identified, we combine them via weighted probability averaging:
 
 \begin{itemize}[noitemsep]
-    \item Class-1 softmax probabilities from the best RoBERTa checkpoint (drop=0.0, bs=4, ga=4, seed=7) and the best DistilBERT checkpoint (drop=0.3, bs=8, ga=2, seed=7) are averaged with equal weights (0.50/0.50).
-    \item A threshold of 0.50 is applied to the averaged probability to produce binary predictions.
-    \item Predictions are written to \texttt{dev.txt} and \texttt{test.txt}.
+    \item \textbf{2-D grid search:} a grid search is performed over the RoBERTa weight $w \in [0, 1]$ (in steps of 0.05) and the classification threshold $t \in [0.05, 0.95]$ (in steps of 0.01). The combined score for each example is $w \cdot p_{\text{RoBERTa}} + (1-w) \cdot p_{\text{DistilBERT}}$. The pair $(w^*, t^*)$ that maximises F1 on the internal validation set is selected. Since both backbones are trained with WRS, their probability outputs are well-calibrated and we expect the optimal weight to be close to 0.50, reflecting genuine complementarity rather than dominance by one model.
+    \item \textbf{Automatic fallback:} if the best ensemble validation F1 does not exceed the solo RoBERTa validation F1, the ensemble is discarded and the solo model is used for submission. This prevents a miscalibrated DistilBERT from degrading performance.
+    \item \textbf{Final predictions:} the selected system (ensemble or solo) is applied to both the official dev and official test sets using $(w^*, t^*)$, producing \texttt{dev.txt} and \texttt{test.txt}.
 \end{itemize}
 
 \subsection{Rationale and Expected Outcome}
