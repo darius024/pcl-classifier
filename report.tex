@@ -36,7 +36,7 @@ GitHub Repository: \url{https://github.com/darius024/pcl-classifier}}
 \clearpage
 \section{Introduction}
 
-Patronising and Condescending Language (PCL) is a subtle and socially harmful form of communication that often targets vulnerable communities such as the homeless, disabled, or refugees. Unlike overt hate speech, PCL can be difficult to detect because it is typically embedded within ostensibly positive or neutral framing — for example, describing vulnerable people as helpless or in need of saving, rather than as agents capable of self-determination.
+Patronising and Condescending Language (PCL) is a subtle and socially harmful form of communication that often targets vulnerable communities such as the homeless, disabled, or refugees. Unlike overt hate speech, PCL can be difficult to detect because it is typically embedded within ostensibly positive or neutral framing; for example, describing vulnerable people as helpless or in need of saving, rather than as agents capable of self-determination.
 
 This report describes work carried out for the SemEval 2022 Task 4, Subtask 1 shared task, which frames PCL detection as a \textbf{binary classification problem}: given a news paragraph, classify it as either containing PCL (class~1) or not (class~0). The evaluation metric is the F1 score of the positive (PCL) class, appropriate given the strong class imbalance in the dataset. The official RoBERTa-base baseline achieves F1 = 0.48 on the dev set; our submitted dual-backbone ensemble achieves \textbf{F1 = 0.6069}, an improvement of $+$0.1269.
 
@@ -52,7 +52,7 @@ The report follows the stages of the NLP research lifecycle as specified in the 
 The paper ``Don't Patronize Me! An Annotated Dataset with Patronizing and Condescending Language towards Vulnerable Communities'' by Pérez-Almendros et al.\ (2020, updated 2022 for SemEval) makes three primary contributions:
 
 \begin{itemize}
-    \item \textbf{Dataset:} The authors introduce the \emph{Don't Patronize Me!} (DPM) corpus, consisting of over 10,000 paragraphs extracted from English-language news articles, each manually annotated for the presence of PCL towards vulnerable communities. Critically, annotations are made at both the document level (binary PCL/No-PCL) and the text-span level — annotators highlight the specific spans that contain PCL — enabling fine-grained supervision at multiple levels. The paragraphs were collected by keyword search (e.g., ``homeless'', ``refugee'', ``disabled'') across articles from many countries, providing broad coverage.
+    \item \textbf{Dataset:} The authors introduce the \emph{Don't Patronize Me!} (DPM) corpus, consisting of over 10,000 paragraphs extracted from English-language news articles, each manually annotated for the presence of PCL towards vulnerable communities. Critically, annotations are made at both the document level (binary PCL/No-PCL) and the text-span level, where annotators highlight the specific spans that contain PCL, enabling fine-grained supervision at multiple levels. The paragraphs were collected by keyword search (e.g., ``homeless'', ``refugee'', ``disabled'') across articles from many countries, providing broad coverage.
 
     \item \textbf{Taxonomy:} The paper proposes a two-level, hierarchical taxonomy of PCL types focused on language directed at vulnerable communities. The first level distinguishes PCL from non-PCL. The second level decomposes PCL into seven fine-grained categories: \emph{Unbalanced Power Relations}, \emph{Shallow Solution}, \emph{Presupposition}, \emph{Authority Voice}, \emph{Metaphor}, \emph{Compassion}, and \emph{The Poorer the Merrier}. This taxonomy brings conceptual clarity to a previously informal notion, making annotation reproducible and enabling multi-label classification (Subtask 2 of SemEval 2022).
 
@@ -66,7 +66,7 @@ The paper ``Don't Patronize Me! An Annotated Dataset with Patronizing and Condes
 
     \item \textbf{Annotation rigour:} The authors employed a multi-annotator setup with trained annotators, reported inter-annotator agreement (IAA) using standard metrics (Fleiss's $\kappa$), and used a majority-voting scheme to produce the final binary labels. The annotation guidelines were developed iteratively through calibration rounds, which increases the reliability of gold labels and reduces the risk of systematic annotator bias.
 
-    \item \textbf{Evaluation design:} The choice of F1 score on the positive (PCL) class as the primary metric is well-motivated given the strong class imbalance (roughly 10\% PCL). Accuracy would be misleading — a model that always predicts ``No PCL'' achieves $\sim$90\% accuracy with no useful signal. F1 on the minority class directly captures both precision and recall for the phenomenon of interest.
+    \item \textbf{Evaluation design:} The choice of F1 score on the positive (PCL) class as the primary metric is well-motivated given the strong class imbalance (roughly 10\% PCL). Accuracy would be misleading: a model that always predicts ``No PCL'' achieves $\sim$90\% accuracy with no useful signal. F1 on the minority class directly captures both precision and recall for the phenomenon of interest.
 \end{itemize}
 
 \subsection{Q3: Weaknesses}
@@ -104,7 +104,7 @@ The paper ``Don't Patronize Me! An Annotated Dataset with Patronizing and Condes
 
 \subsubsection*{Analysis}
 
-The DPM corpus contains 10,469 examples in total: 993 PCL (9.5\%) and 9,476 No-PCL (90.5\%), reflecting a roughly \textbf{9.5:1 class imbalance}. This ratio is uniformly preserved across the official train split (8,375 examples; 794 PCL, 9.5\%) and the dev split (2,094 examples; 199 PCL, 9.5\%). The imbalance is severe but not pathological — with $\sim$794 positive training examples there is still meaningful signal for a fine-tuned transformer.
+The DPM corpus contains 10,469 examples in total: 993 PCL (9.5\%) and 9,476 No-PCL (90.5\%), reflecting a roughly \textbf{9.5:1 class imbalance}. This ratio is uniformly preserved across the official train split (8,375 examples; 794 PCL, 9.5\%) and the dev split (2,094 examples; 199 PCL, 9.5\%). The imbalance is severe but not pathological; with $\sim$794 positive training examples there is still meaningful signal for a fine-tuned transformer.
 
 The token length distributions show that PCL examples have a slightly higher mean word count ($\sim$80--100 words) compared to No-PCL examples, though the medians are closer. More importantly, both distributions have a long tail: some examples exceed 300 words, though the 95th percentile is below 200 words.
 
@@ -138,9 +138,9 @@ The severe class imbalance directly motivates two modelling decisions:
 
 \subsubsection*{Analysis}
 
-The log-odds contrast plot reveals that PCL examples disproportionately feature words relating to vulnerability and emotional framing — terms such as ``help'', ``need'', ``community'', ``support'', and ``people'' appear significantly more often in PCL text. The bigram analysis surfaces phrases like ``in need'', ``help them'', ``these people'', and ``the homeless'' as distinctive of PCL, which intuitively align with language that frames vulnerable communities as passive recipients of charity rather than active agents.
+The log-odds contrast plot reveals that PCL examples disproportionately feature words relating to vulnerability and emotional framing, such as ``help'', ``need'', ``community'', ``support'', and ``people'' appear significantly more often in PCL text. The bigram analysis surfaces phrases like ``in need'', ``help them'', ``these people'', and ``the homeless'' as distinctive of PCL, which intuitively align with language that frames vulnerable communities as passive recipients of charity rather than active agents.
 
-However, many of these words (e.g., ``help'', ``community'') are equally common in genuinely supportive, non-condescending writing. This is the central challenge of PCL detection: \emph{surface-level lexical cues alone are insufficient}. Two texts using almost identical vocabulary can differ fundamentally in tone. The patronising quality often lies in implied power dynamics, presuppositions about the group's capabilities, or the framing of their situation as hopeless — none of which are directly recoverable from word frequencies alone.
+However, many of these words (e.g., ``help'', ``community'') are equally common in genuinely supportive, non-condescending writing. This is the central challenge of PCL detection: \emph{surface-level lexical cues alone are insufficient}. Two texts using almost identical vocabulary can differ fundamentally in tone. The patronising quality often lies in implied power dynamics, presuppositions about the group's capabilities, or the framing of their situation as hopeless, none of which are directly recoverable from word frequencies alone.
 
 \subsubsection*{Impact Statement}
 
@@ -254,7 +254,7 @@ False Negative Rate    & 0.347 & 34.7\% of PCL missed \\
 \label{tab:cm_stats}
 \end{table}
 
-The model is \emph{conservative} — it correctly classifies 94.6\% of No-PCL examples (low FPR), but misses 34.7\% of PCL examples (high FNR). This asymmetry is characteristic of the task: given the 9.5:1 imbalance, the model has a high prior towards predicting ``No PCL'', so only examples where the model is fairly confident trigger a PCL prediction. The consequence is that precision (0.560) is higher than one might expect from a model trained on such skewed data, but recall on the positive class is still limited.
+The model is \emph{conservative}: it correctly classifies 94.6\% of No-PCL examples (low FPR), but misses 34.7\% of PCL examples (high FNR). This asymmetry is characteristic of the task: given the 9.5:1 imbalance, the model has a high prior towards predicting ``No PCL'', so only examples where the model is fairly confident trigger a PCL prediction. The consequence is that precision (0.560) is higher than one might expect from a model trained on such skewed data, but recall on the positive class is still limited.
 
 \subsubsection*{Manual Inspection of Misclassifications}
 
@@ -281,7 +281,7 @@ FN & hopeless & BD & \textit{``Calling for an immediate political solution to re
 
 \textbf{False Positives (model over-triggers).} Both FP examples discuss vulnerable communities using factual or organisational language. The first describes a church initiative for unemployed families; the second lists demographics identified by an NGO. Neither is condescending in tone, yet both contain the vocabulary the model associates with PCL (``families'', ``poor'', ``unemployed'', ``HIV/AIDS''). The model appears to latch onto the presence of vulnerability-related keywords rather than the framing or power dynamics.
 
-\textbf{False Negatives (model under-triggers).} The FN examples are notably more challenging. The ``Michael Gove'' example is a clear case of the \emph{Presupposition} PCL category — it implies that poor families are financially incompetent — but the language is bureaucratic and indirect. The ``Syria/hopeless'' example contains PCL through political framing rather than explicit emotional language. In both cases, the PCL is fully implicit: understanding it requires background knowledge and pragmatic reasoning beyond surface token patterns. These represent the fundamental limit of current transformer-based classifiers on this task.
+\textbf{False Negatives (model under-triggers).} The FN examples are notably more challenging. The ``Michael Gove'' example is a clear case of the \emph{Presupposition} PCL category; it implies that poor families are financially incompetent, but the language is bureaucratic and indirect. The ``Syria/hopeless'' example contains PCL through political framing rather than explicit emotional language. In both cases, the PCL is fully implicit: understanding it requires background knowledge and pragmatic reasoning beyond surface token patterns. These represent the fundamental limit of current transformer-based classifiers on this task.
 
 \subsubsection*{Per-Keyword Analysis}
 
@@ -314,7 +314,7 @@ women         & 6.0\%  & 0.545 & 0.429 & 0.480 \\
 \label{tab:per_keyword}
 \end{table}
 
-The model performs best on \textbf{in-need} (F1 = 0.729, PCL rate 14.6\%) and \textbf{homeless} (F1 = 0.689, PCL rate 13.7\%) — the categories with the highest proportion of positive examples and likely the most distinctive vocabulary. Performance is worst on \textbf{women} (F1 = 0.480), \textbf{migrant} (F1 = 0.500), and \textbf{refugee} (F1 = 0.519), which have much lower PCL rates (2--7\%) and fewer positive training examples. This strong correlation between PCL base rate and F1 suggests the model is partly learning keyword-specific patterns rather than a fully transferable notion of PCL.
+The model performs best on \textbf{in-need} (F1 = 0.729, PCL rate 14.6\%) and \textbf{homeless} (F1 = 0.689, PCL rate 13.7\%), the categories with the highest proportion of positive examples and likely the most distinctive vocabulary. Performance is worst on \textbf{women} (F1 = 0.480), \textbf{migrant} (F1 = 0.500), and \textbf{refugee} (F1 = 0.519), which have much lower PCL rates (2--7\%) and fewer positive training examples. This strong correlation between PCL base rate and F1 suggests the model is partly learning keyword-specific patterns rather than a fully transferable notion of PCL.
 
 Interestingly, \textbf{immigrant} achieves perfect precision (1.000) but low recall (0.429): when the model flags an immigrant-related text as PCL, it is always correct, but it misses most cases. This may indicate that PCL in immigrant-related texts is either very obvious when present, or occurs in linguistic forms the model rarely sees during training.
 
@@ -331,8 +331,8 @@ Interestingly, \textbf{immigrant} achieves perfect precision (1.000) but low rec
 
 The AUC-PR of \textbf{0.5906} is substantially higher than the no-skill baseline of $\approx$0.095 (equal to the PCL rate), confirming real discriminative power. Key trade-offs along the curve:
 \begin{itemize}[noitemsep]
-    \item Recall $>$0.85 is achievable at the cost of precision $\sim$0.25--0.30 — preferable when missing PCL is costly (e.g., large-scale content auditing).
-    \item Threshold 0.75 gives precision $>$0.70 at recall $\approx$0.50 — preferable when false positives carry a high cost.
+    \item Recall $>$0.85 is achievable at the cost of precision $\sim$0.25--0.30, preferable when missing PCL is costly (e.g., large-scale content auditing).
+    \item Threshold 0.75 gives precision $>$0.70 at recall $\approx$0.50, preferable when false positives carry a high cost.
     \item Our chosen threshold of 0.50 (precision = 0.560, recall = 0.653) maximises F1 in line with the SemEval criterion.
 \end{itemize}
 
@@ -341,7 +341,7 @@ The AUC-PR of \textbf{0.5906} is substantially higher than the no-skill baseline
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.70\textwidth]{images/multi_seed_comparison.png}
-\caption{RoBERTa-base (drop=0.0, bs=4, ga=4) across three random seeds — bar heights show best-threshold F1 on the dev set. Whiskers (if present) show AUC-PR.}
+\caption{RoBERTa-base (drop=0.0, bs=4, ga=4) across three random seeds; bar heights show best-threshold F1 on the dev set. Whiskers (if present) show AUC-PR.}
 \label{fig:multi_seed}
 \end{figure}
 
@@ -367,11 +367,11 @@ Training the same architecture with three different seeds yields F1 values spann
 A rigorous component ablation was conducted to isolate the contribution of each training-time design decision. Using \texttt{distilbert-base-uncased} (seed=42) as a controlled backbone, we re-trained with exactly one component removed per variant; all other hyperparameters remained fixed at the full-model values. The five components tested are:
 
 \begin{enumerate}[noitemsep]
-    \item \textbf{Metadata prepending} — remove the \texttt{<e>keyword</e> <e>country</e>} prefix; pass raw article text only.
-    \item \textbf{Weighted Random Sampler (WRS)} — replace with a standard uniform DataLoader.
-    \item \textbf{Grouped LLRD} — replace with a single uniform learning rate (2e-5) across all layers.
-    \item \textbf{Linear warmup} — remove the 6\% warmup phase; start cosine decay from step 0.
-    \item \textbf{Threshold tuning} — fix decision threshold at $t=0.50$ instead of sweeping on the validation set.
+    \item \textbf{Metadata prepending}: remove the \texttt{<e>keyword</e> <e>country</e>} prefix; pass raw article text only.
+    \item \textbf{Weighted Random Sampler (WRS)}: replace with a standard uniform DataLoader.
+    \item \textbf{Grouped LLRD}: replace with a single uniform learning rate (2e-5) across all layers.
+    \item \textbf{Linear warmup}: remove the 6\% warmup phase; start cosine decay from step 0.
+    \item \textbf{Threshold tuning}: fix decision threshold at $t=0.50$ instead of sweeping on the validation set.
 \end{enumerate}
 
 All variants are trained for up to 10 epochs with early stopping (patience=3) and evaluated on the official dev set. Full code and logs are in \texttt{5\_evaluation/ablation\_study.ipynb}.
@@ -394,7 +394,7 @@ Fixed threshold $t=0.50$       & \textit{fill in} & \textit{fill in} & \textit{f
 \label{tab:ablation_component}
 \end{table}
 
-\textbf{Part B — Dropout and batch-size ablation} (from the full hyperparameter search; results are the best validation F1 across three seeds per configuration):
+\textbf{Part B: Dropout and batch-size ablation} (from the full hyperparameter search; results are the best validation F1 across three seeds per configuration):
 
 \begin{table}[H]
 \centering
@@ -420,11 +420,11 @@ DistilBERT   & drop=0.3, bs=8, ga=2  & 0.5775 & \textbf{0.5818} & 0.5657 \\
 
 Three findings emerge from Table~\ref{tab:ablation_dropout}:
 
-\textbf{1. Classifier-head dropout is the most destructive hyperparameter.} RoBERTa with drop=0.5 collapses from val F1~$\sim$0.598 down to $\sim$0.28--0.32 — a drop of over 0.30 F1 points. This is not a minor degradation; it renders the model nearly useless. The explanation is straightforward: with only 794 positive training examples, the model needs every gradient signal to adapt the classifier head rapidly to a highly skewed distribution, and a 50\% dropout rate effectively halves the available gradient per step. Drop=0.0 (no extra dropout beyond the pre-trained layers themselves) is the right choice for RoBERTa. DistilBERT is somewhat more tolerant of modest dropout (0.1--0.3) due to its smaller capacity and the fact that its pre-trained layers already apply less dropout.
+\textbf{1. Classifier-head dropout is the most destructive hyperparameter.} RoBERTa with drop=0.5 collapses from val F1~$\sim$0.598 down to $\sim$0.28--0.32, a drop of over 0.30 F1 points. This is not a minor degradation; it renders the model nearly useless. The explanation is straightforward: with only 794 positive training examples, the model needs every gradient signal to adapt the classifier head rapidly to a highly skewed distribution, and a 50\% dropout rate effectively halves the available gradient per step. Drop=0.0 (no extra dropout beyond the pre-trained layers themselves) is the right choice for RoBERTa. DistilBERT is somewhat more tolerant of modest dropout (0.1--0.3) due to its smaller capacity and the fact that its pre-trained layers already apply less dropout.
 
 \textbf{2. Batch size and gradient accumulation are largely irrelevant.} For RoBERTa drop=0.0, both batch configurations (bs=8/ga=2 and bs=4/ga=4, both effective batch=16) peak at an identical best-seed val F1 of 0.5979. The same pattern holds for DistilBERT. Given that the effective batch size is equal in both cases, this confirms that gradient quality (signal-to-noise ratio per update) matters, not the number of updates per epoch.
 
-\textbf{3. Ensembling provides the largest gain over any individual checkpoint.} The best solo checkpoint (RoBERTa, val F1=0.5979, dev F1=0.6034) does not match the ensemble (dev F1=0.6069). The $+$0.004 gain on the dev set — after threshold tuning per model — confirms that RoBERTa and DistilBERT make partially uncorrelated errors, as the Venn-style comparison in Figure~\ref{fig:rvd} directly shows.
+\textbf{3. Ensembling provides the largest gain over any individual checkpoint.} The best solo checkpoint (RoBERTa, val F1=0.5979, dev F1=0.6034) does not match the ensemble (dev F1=0.6069). The $+$0.004 gain on the dev set (after threshold tuning per model) confirms that RoBERTa and DistilBERT make partially uncorrelated errors, as the Venn-style comparison in Figure~\ref{fig:rvd} directly shows.
 
 \begin{figure}[H]
 \centering
@@ -438,13 +438,13 @@ Three findings emerge from Table~\ref{tab:ablation_dropout}:
 \section{Discussion}
 \label{sec:discussion}
 
-Our proposed ensemble successfully surpasses the official baseline F1 of 0.48 on the dev set, achieving \textbf{0.6069} — an improvement of $+$0.1269 (26\% relative). The main contributors to this improvement are: (1) using large pre-trained transformer models rather than the baseline's simpler fine-tuning setup; (2) explicitly addressing the 9.5:1 class imbalance via WRS; (3) prepending keyword/country metadata to provide contextual signals; and (4) ensembling two complementary architectures to reduce variance.
+Our proposed ensemble successfully surpasses the official baseline F1 of 0.48 on the dev set, achieving \textbf{0.6069}, an improvement of $+$0.1269 (26\% relative). The main contributors to this improvement are: (1) using large pre-trained transformer models rather than the baseline's simpler fine-tuning setup; (2) explicitly addressing the 9.5:1 class imbalance via WRS; (3) prepending keyword/country metadata to provide contextual signals; and (4) ensembling two complementary architectures to reduce variance.
 
-Despite this improvement, the model still struggles with the most challenging PCL cases. The false negative analysis shows that indirect, politically framed, or presupposition-heavy PCL remains difficult to detect. These examples require reasoning about social context and implied meaning — capabilities that current transformers handle only partially, particularly on a dataset as small as this one.
+Despite this improvement, the model still struggles with the most challenging PCL cases. The false negative analysis shows that indirect, politically framed, or presupposition-heavy PCL remains difficult to detect. These examples require reasoning about social context and implied meaning, capabilities that current transformers handle only partially, particularly on a dataset as small as this one.
 
 The per-keyword analysis reveals an additional limitation: the model's performance correlates strongly with the base rate of PCL per keyword, suggesting it learns some category-specific patterns rather than a truly universal notion of PCL. A model that genuinely understood PCL should perform more uniformly across all keywords.
 
-With more time and compute, several improvements could be explored: (1) \textbf{larger models} such as \texttt{roberta-large} or \texttt{deberta-v3-base} have shown state-of-the-art performance on comparable tasks; (2) \textbf{data augmentation} through back-translation or paraphrase generation could increase the number of positive training examples; (3) \textbf{multi-task learning} using the fine-grained PCL category labels from Subtask 2 as auxiliary supervision could sharpen the binary classifier; (4) \textbf{curriculum learning} — starting with easy (high-confidence) examples and gradually introducing hard (ambiguous) ones — might improve convergence on the minority class.
+With more time and compute, several improvements could be explored: (1) \textbf{larger models} such as \texttt{roberta-large} or \texttt{deberta-v3-base} have shown state-of-the-art performance on comparable tasks; (2) \textbf{data augmentation} through back-translation or paraphrase generation could increase the number of positive training examples; (3) \textbf{multi-task learning} using the fine-grained PCL category labels from Subtask 2 as auxiliary supervision could sharpen the binary classifier; (4) \textbf{curriculum learning}, starting with easy (high-confidence) examples and gradually introducing hard (ambiguous) ones, might improve convergence on the minority class.
 
 % ============================================================
 \clearpage
